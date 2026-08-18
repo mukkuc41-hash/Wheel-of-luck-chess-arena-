@@ -225,6 +225,11 @@ const ARROW_COLORS = {
   blue: '#3b82f6',
 };
 
+const BOARD_FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const;
+const BOARD_RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'] as const;
+const REVERSED_FILES = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a'] as const;
+const REVERSED_RANKS = ['1', '2', '3', '4', '5', '6', '7', '8'] as const;
+
 export const ChessBoard: React.FC<ChessBoardProps> = ({
   chess,
   orientation,
@@ -440,11 +445,8 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
     });
   }, [chess.fen(), lastMove]);
 
-  const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-  const ranks = ['8', '7', '6', '5', '4', '3', '2', '1'];
-
-  const displayedRanks = orientation === 'w' ? ranks : [...ranks].reverse();
-  const displayedFiles = orientation === 'w' ? files : [...files].reverse();
+  const displayedRanks = orientation === 'w' ? BOARD_RANKS : REVERSED_RANKS;
+  const displayedFiles = orientation === 'w' ? BOARD_FILES : REVERSED_FILES;
 
   // Helper to get pixel center coordinates of a square on the board
   const getSquareCoords = useCallback(
@@ -452,15 +454,17 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
       if (!boardRef.current) return { x: 0, y: 0, size: 60 };
       const rect = boardRef.current.getBoundingClientRect();
       const squareSize = rect.width / 8;
-      const fIdx = displayedFiles.indexOf(square[0]);
-      const rIdx = displayedRanks.indexOf(square[1]);
+      const fList = orientation === 'w' ? BOARD_FILES : REVERSED_FILES;
+      const rList = orientation === 'w' ? BOARD_RANKS : REVERSED_RANKS;
+      const fIdx = (fList as readonly string[]).indexOf(square[0]);
+      const rIdx = (rList as readonly string[]).indexOf(square[1]);
       return {
         x: fIdx * squareSize + squareSize / 2,
         y: rIdx * squareSize + squareSize / 2,
         size: squareSize,
       };
     },
-    [displayedFiles, displayedRanks]
+    [orientation]
   );
 
   // Spark Particles Emitter
@@ -766,8 +770,16 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
     }
   }, [lastMove, chess, kingInCheckSquare, vfxSettings, getSquareCoords, triggerParticleBurst]);
 
-  // High-Stress Multi-Threat & Cry State Trigger Engine (3+ Enemy Attackers = Cry State + 2,500 PTS)
+  // High-Stress Multi-Threat & Cry State Trigger Engine (Element Cry Matrix = Cry State + 2,500 PTS)
+  const lastProcessedThreatFenRef = useRef<string>('');
+
   useEffect(() => {
+    const currentFen = chess.fen();
+    if (lastProcessedThreatFenRef.current === currentFen) {
+      return;
+    }
+    lastProcessedThreatFenRef.current = currentFen;
+
     const stressList = scanBoardForHighStressThreats(chess);
     const map: Partial<Record<Square, SquareThreatData>> = {};
     let maxThreat: SquareThreatData | null = null;
@@ -785,14 +797,14 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
       mostThreatened: maxThreat,
     });
 
-    // Check for pieces newly entering high-stress conditions (>= 3 enemy attackers)
+    // Check for pieces newly entering cry state conditions (Element Cry Matrix or >= 3 enemy attackers)
     for (const item of stressList) {
-      const fenKey = `${chess.history().length}_${item.square}_${item.pieceType}_${item.attackerCount}`;
+      const fenKey = `${chess.history().length}_${item.square}_${item.pieceType}_${item.attackerCount}_${item.cryEvaluation?.behaviorTitle || ''}`;
       if (!triggeredHighStressSetRef.current.has(fenKey)) {
         triggeredHighStressSetRef.current.add(fenKey);
 
         // 1. Award +2,500 Points Reward
-        addPoints(2500, `High-Stress Threat Defense (${item.pieceCode})`);
+        addPoints(2500, `Element Cry Defense (${item.pieceCode} - ${item.cryEvaluation?.behaviorTitle || 'Tactical Threat'})`);
         setUserPointsState(getUserPoints());
 
         // 2. Play piece-specific synthesized cry sound
@@ -822,13 +834,14 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
 
         // Add floating cry reward badge
         const badgeId = Date.now() + Math.random();
+        const behaviorName = item.cryEvaluation?.behaviorTitle || 'CRY STATE';
         setFloatingBadges((prev) => [
           ...prev,
           {
             id: badgeId,
             x: coords.x,
             y: coords.y,
-            text: `😭 CRY DEFENSE +2,500 PTS (${item.attackerCount}⚔️)`,
+            text: `😭 ${behaviorName.toUpperCase()} +2,500 PTS (${item.attackerCount}⚔️)`,
             color: 'text-amber-300 font-black',
             bg: 'bg-gradient-to-r from-amber-950/95 to-slate-950/95',
             border: 'border-amber-400',
@@ -856,14 +869,18 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
         }
 
         // Toast feedback
+        const customMsg = item.cryEvaluation?.threatDescription
+          ? `⚠️ ${item.cryEvaluation.behaviorTitle.toUpperCase()}: ${item.cryEvaluation.threatDescription} +2,500 PTS Cry Reward Granted!`
+          : `⚠️ HIGH STRESS! ${crySpec?.pieceName || item.pieceCode} is under attack by ${item.attackerCount} enemy pieces! 3D Tears Flowing & +2,500 PTS Cry Reward Granted!`;
+
         setVfxFeedbackToast({
-          message: `⚠️ HIGH STRESS! ${crySpec?.pieceName || item.pieceCode} is under attack by ${item.attackerCount} enemy pieces! 3D Tears Flowing & +2,500 PTS Cry Reward Granted!`,
+          message: customMsg,
           type: 'info',
         });
         setTimeout(() => setVfxFeedbackToast((curr) => (curr?.type === 'info' ? null : curr)), 4500);
       }
     }
-  }, [chess.fen(), lastMove, soundEnabled, vfxSettings.screenShake, getSquareCoords, triggerParticleBurst]);
+  }, [chess.fen(), soundEnabled, vfxSettings.screenShake, getSquareCoords, triggerParticleBurst]);
 
   // Trigger signature physics test effect right onto the main board
   const triggerSignaturePhysicsPreset = (presetName: string) => {
@@ -1910,7 +1927,9 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
                   <span className="text-[10px] text-amber-300 font-bold uppercase tracking-wider block">
                     Unlock Price
                   </span>
-                  <span className="text-lg font-black text-amber-400">1,000 PTS</span>
+                  <span className="text-lg font-black text-amber-400">
+                    {((selectedUnlockItem.price) || 5000).toLocaleString()} PTS
+                  </span>
                 </div>
                 <div className="text-right">
                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
@@ -1918,7 +1937,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
                   </span>
                   <span
                     className={`text-lg font-black ${
-                      userPoints >= 1000 ? 'text-emerald-400' : 'text-rose-400'
+                      userPoints >= (selectedUnlockItem.price || 5000) ? 'text-emerald-400' : 'text-rose-400'
                     }`}
                   >
                     {userPoints.toLocaleString()} PTS
@@ -1927,7 +1946,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
               </div>
 
               {/* Action Buttons */}
-              {userPoints >= 1000 ? (
+              {userPoints >= (selectedUnlockItem.price || 5000) ? (
                 <button
                   onClick={() => handleUnlockItemDirectly(selectedUnlockItem)}
                   className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm shadow-[0_0_20px_rgba(251,191,36,0.4)] transition transform hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2"
@@ -1938,7 +1957,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
               ) : (
                 <div className="flex flex-col gap-2">
                   <div className="p-2.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-200 text-xs font-bold text-center">
-                    You need {(1000 - userPoints).toLocaleString()} more PTS to unlock this effect!
+                    You need {(((selectedUnlockItem.price || 5000) - userPoints)).toLocaleString()} more PTS to unlock this effect!
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     {onOpenDailyWheel && (
@@ -2267,10 +2286,10 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
             {/* Last Move Trajectory Line */}
             {showLastMove && lastMove && (
               <line
-                x1={`${(displayedFiles.indexOf(lastMove.from[0]) + 0.5) * 12.5}%`}
-                y1={`${(displayedRanks.indexOf(lastMove.from[1]) + 0.5) * 12.5}%`}
-                x2={`${(displayedFiles.indexOf(lastMove.to[0]) + 0.5) * 12.5}%`}
-                y2={`${(displayedRanks.indexOf(lastMove.to[1]) + 0.5) * 12.5}%`}
+                x1={`${((displayedFiles as readonly string[]).indexOf(lastMove.from[0]) + 0.5) * 12.5}%`}
+                y1={`${((displayedRanks as readonly string[]).indexOf(lastMove.from[1]) + 0.5) * 12.5}%`}
+                x2={`${((displayedFiles as readonly string[]).indexOf(lastMove.to[0]) + 0.5) * 12.5}%`}
+                y2={`${((displayedRanks as readonly string[]).indexOf(lastMove.to[1]) + 0.5) * 12.5}%`}
                 stroke="#818cf8"
                 strokeWidth="4"
                 strokeDasharray="6 3"
@@ -2281,10 +2300,10 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
 
             {/* User Tactical Annotation Arrows */}
             {arrows.map((arrow, idx) => {
-              const x1 = (displayedFiles.indexOf(arrow.from[0]) + 0.5) * 12.5;
-              const y1 = (displayedRanks.indexOf(arrow.from[1]) + 0.5) * 12.5;
-              const x2 = (displayedFiles.indexOf(arrow.to[0]) + 0.5) * 12.5;
-              const y2 = (displayedRanks.indexOf(arrow.to[1]) + 0.5) * 12.5;
+              const x1 = ((displayedFiles as readonly string[]).indexOf(arrow.from[0]) + 0.5) * 12.5;
+              const y1 = ((displayedRanks as readonly string[]).indexOf(arrow.from[1]) + 0.5) * 12.5;
+              const x2 = ((displayedFiles as readonly string[]).indexOf(arrow.to[0]) + 0.5) * 12.5;
+              const y2 = ((displayedRanks as readonly string[]).indexOf(arrow.to[1]) + 0.5) * 12.5;
 
               return (
                 <line

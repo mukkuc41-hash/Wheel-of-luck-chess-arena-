@@ -28,7 +28,94 @@ const STORAGE_KEYS = {
   RANDOM_QUESTS: 'chess_active_random_quests',
   QUESTS_DATE: 'chess_random_quests_date',
   HATRICK_STATE: 'chess_hatrick_session_state',
+  SERIES_STATE: 'chess_16_game_series_state',
   RESET_FLAG: 'chess_master_hub_v4_reset_done',
+};
+
+export interface SeriesState {
+  gamesPlayed: number;
+  totalGamesCap: number;
+  losses: number;
+  wins: number;
+  draws: number;
+  totalPenaltiesDeducted: number;
+  lastPenaltyTimestamp: number | null;
+}
+
+export function getSeriesState(): SeriesState {
+  if (typeof window === 'undefined') {
+    return { gamesPlayed: 0, totalGamesCap: 16, losses: 0, wins: 0, draws: 0, totalPenaltiesDeducted: 0, lastPenaltyTimestamp: null };
+  }
+  const saved = localStorage.getItem(STORAGE_KEYS.SERIES_STATE);
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {}
+  }
+  return { gamesPlayed: 0, totalGamesCap: 16, losses: 0, wins: 0, draws: 0, totalPenaltiesDeducted: 0, lastPenaltyTimestamp: null };
+}
+
+export function saveSeriesState(state: SeriesState): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(STORAGE_KEYS.SERIES_STATE, JSON.stringify(state));
+  window.dispatchEvent(new CustomEvent('chess_series_state_updated', { detail: state }));
+}
+
+export function resetSeriesState(totalGamesCap = 16): SeriesState {
+  const fresh: SeriesState = {
+    gamesPlayed: 0,
+    totalGamesCap,
+    losses: 0,
+    wins: 0,
+    draws: 0,
+    totalPenaltiesDeducted: 0,
+    lastPenaltyTimestamp: null,
+  };
+  saveSeriesState(fresh);
+  return fresh;
+}
+
+export const triggerPenaltyVisualAlert = () => {
+  // Apply temporary red flash or screen shake for losing 10,000 points
+  if (typeof document === 'undefined') return;
+  const container = document.querySelector('.engine-container') || document.querySelector('#root') || document.body;
+  if (container) {
+    container.classList.add('penalty-flash');
+    setTimeout(() => container.classList.remove('penalty-flash'), 600);
+  }
+  window.dispatchEvent(new CustomEvent('chess_penalty_visual_alert', { detail: { pointsDeducted: 10000 } }));
+};
+
+// Global Penalty Mechanism & 16-Game Series State Engine
+export const handleGameLoss = (currentGame?: number, totalGamesCap = 16): { newScore: number; gamesPlayed: number; penaltyApplied: boolean } => {
+  const currentSeries = getSeriesState();
+  const currentNum = currentGame !== undefined ? currentGame : currentSeries.gamesPlayed + 1;
+  const cap = totalGamesCap || currentSeries.totalGamesCap || 16;
+
+  let penaltyApplied = false;
+  let newScore = getUserPoints();
+
+  if (currentNum <= cap) {
+    // 10,000 points penalty deduction
+    newScore = deductPoints(10000, `Game Loss Penalty (-10,000 PTS) [Game ${currentNum}/${cap}]`);
+    
+    currentSeries.gamesPlayed = currentNum;
+    currentSeries.losses += 1;
+    currentSeries.totalPenaltiesDeducted += 10000;
+    currentSeries.lastPenaltyTimestamp = Date.now();
+    currentSeries.totalGamesCap = cap;
+    saveSeriesState(currentSeries);
+    penaltyApplied = true;
+
+    // Trigger penalty UI state feedback
+    triggerPenaltyVisualAlert();
+  } else {
+    currentSeries.gamesPlayed = currentNum;
+    currentSeries.losses += 1;
+    saveSeriesState(currentSeries);
+  }
+
+  return { newScore, gamesPlayed: currentSeries.gamesPlayed, penaltyApplied };
 };
 
 const QUEST_POOL: Omit<RandomQuest, 'id' | 'current' | 'completed' | 'claimed'>[] = [
@@ -184,6 +271,14 @@ export function resetAllPurchasesAndPoints(startingPoints = 5000): void {
 export function addPoints(amount: number, reason: string): number {
   const current = getUserPoints();
   const updated = current + amount;
+  setUserPoints(updated, reason);
+  return updated;
+}
+
+export function deductPoints(amount: number, reason: string): number {
+  const current = getUserPoints();
+  // Deduct points (can drop to 0 or allow direct balance decrease)
+  const updated = Math.max(0, current - amount);
   setUserPoints(updated, reason);
   return updated;
 }

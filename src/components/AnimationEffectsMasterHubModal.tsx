@@ -36,6 +36,8 @@ import {
   getActiveRandomQuests,
   checkDailyWheelStatus,
   resetAllPurchasesAndPoints,
+  getSeriesState,
+  SeriesState,
 } from '../utils/pointsManager';
 import {
   MASTER_96_CATALOG,
@@ -187,7 +189,7 @@ export function AnimationEffectsMasterHubModal({
 
   // Activity Log
   const [activityLog, setActivityLog] = useState<string>(
-    'Welcome! No animations or effects are unlocked or equipped by default. Unlock any animation or effect for 1,000 Points in the Shop to equip to your piece loadouts.'
+    'Welcome! No animations or effects are unlocked or equipped by default. Unlock any animation or effect for 5,000 Points in the Shop to equip to your piece loadouts.'
   );
 
   // Earn Modal / Feedback
@@ -195,6 +197,7 @@ export function AnimationEffectsMasterHubModal({
   const [hatrickData, setHatrickData] = useState(() => getHatrickState());
   const [wheelStatus, setWheelStatus] = useState(() => checkDailyWheelStatus());
   const [activeQuests, setActiveQuests] = useState(() => getActiveRandomQuests());
+  const [seriesState, setSeriesState] = useState<SeriesState>(() => getSeriesState());
 
   // Sandbox State
   const [sandboxPiece, setSandboxPiece] = useState<'p' | 'n' | 'b' | 'r' | 'q' | 'k'>('r');
@@ -210,6 +213,7 @@ export function AnimationEffectsMasterHubModal({
       setHatrickData(getHatrickState());
       setWheelStatus(checkDailyWheelStatus());
       setActiveQuests(getActiveRandomQuests());
+      setSeriesState(getSeriesState());
     };
 
     refreshData();
@@ -217,15 +221,18 @@ export function AnimationEffectsMasterHubModal({
     const handlePointsUpdate = () => refreshData();
     const handleQuestsUpdate = () => refreshData();
     const handleHatrickUpdate = () => refreshData();
+    const handleSeriesUpdate = () => refreshData();
 
     window.addEventListener('chess_points_updated', handlePointsUpdate);
     window.addEventListener('chess_quests_updated', handleQuestsUpdate);
     window.addEventListener('chess_hatrick_achieved', handleHatrickUpdate);
+    window.addEventListener('chess_series_state_updated', handleSeriesUpdate);
 
     return () => {
       window.removeEventListener('chess_points_updated', handlePointsUpdate);
       window.removeEventListener('chess_quests_updated', handleQuestsUpdate);
       window.removeEventListener('chess_hatrick_achieved', handleHatrickUpdate);
+      window.removeEventListener('chess_series_state_updated', handleSeriesUpdate);
     };
   }, [isOpen]);
 
@@ -451,6 +458,22 @@ export function AnimationEffectsMasterHubModal({
                 </div>
               </div>
 
+              {/* 16-Game Series Engine & Loss Penalty Indicator */}
+              <div
+                className="bg-[#180909] border border-red-500/40 px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs shadow-sm"
+                title="16-Game Series Engine: Any match loss deducts 10,000 PTS penalty"
+              >
+                <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-red-600 to-rose-700 flex items-center justify-center text-[10px] text-white">
+                  ⚠️
+                </div>
+                <div className="text-left">
+                  <div className="text-[10px] text-red-300 font-bold leading-none">
+                    Series: {Math.min(seriesState.gamesPlayed, 16)}/16
+                  </div>
+                  <div className="text-[11px] text-red-400 font-black leading-none mt-0.5">-10K on Loss</div>
+                </div>
+              </div>
+
               {/* Close Button */}
               <button
                 onClick={onClose}
@@ -485,7 +508,7 @@ export function AnimationEffectsMasterHubModal({
               }`}
             >
               <span className="text-base leading-none">😭</span>
-              <span>CRY STATES (6 ELEMENTS • 2,500 PTS)</span>
+              <span>CRY STATES (6 ELEMENTS • 5,000 PTS)</span>
               <span className="px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black">
                 EXCLUSIVE
               </span>
@@ -568,7 +591,7 @@ export function AnimationEffectsMasterHubModal({
                         <option value="Occupying Animation">Occupying Animation</option>
                         <option value="Capture Effect">Capture Effect</option>
                         <option value="Occupying Effect">Occupying Effect</option>
-                        <option value="Cry State">Exclusive Cry State (+2,500 PTS)</option>
+                        <option value="Cry State">Exclusive Cry State (2,500 PTS)</option>
                       </select>
                     </div>
 
@@ -603,7 +626,7 @@ export function AnimationEffectsMasterHubModal({
                     <div>
                       BROWSE MASTER LIBRARY (
                       <span className="text-[#2ecc71]">{filteredCatalog.length} ITEMS DISPLAYED</span>) –
-                      COST: <span className="text-[#f1c40f]">1,000 PTS</span> EACH
+                      COST: <span className="text-[#f1c40f]">5,000 PTS</span> EACH
                     </div>
                     <span className="text-[11px] text-slate-400 font-normal">
                       Unlocked: <span className="text-white font-bold">{ownedItems.length}</span>/96
@@ -946,14 +969,14 @@ export function AnimationEffectsMasterHubModal({
                       <div className="flex items-center gap-2">
                         <span className="text-2xl">😭</span>
                         <h3 className="text-lg sm:text-xl font-black text-amber-300 tracking-wide">
-                          EXCLUSIVE 2,500 POINTS CRY ANIMATIONS &amp; EFFECTS
+                          EXCLUSIVE 5,000 POINTS CRY ANIMATIONS &amp; EFFECTS
                         </h3>
                         <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[10px] shadow-sm">
                           6 ELEMENTS
                         </span>
                       </div>
                       <p className="text-xs text-slate-300 font-medium leading-relaxed">
-                        Every chess element (Pawn, Knight, Bishop, Rook, Queen, King) has an exclusive Cry Animation paired with synthesized acoustic soundwaves and custom GPU particle filters — each valued at exactly <strong className="text-amber-300">2,500 PTS</strong>. Audition their sounds, test their keyframe physics, and equip them to your live match loadouts!
+                        Every chess element (Pawn, Knight, Bishop, Rook, Queen, King) has an exclusive Cry Animation paired with synthesized acoustic soundwaves and custom GPU particle filters — each valued at exactly <strong className="text-amber-300">5,000 PTS</strong>. Audition their sounds, test their keyframe physics, and equip them to your live match loadouts!
                       </p>
                     </div>
 
@@ -979,7 +1002,7 @@ export function AnimationEffectsMasterHubModal({
                 {/* 6 Elements Cry Cards Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {CRY_STATES_MATRIX.map((spec) => {
-                    const matchingCatalog = MASTER_96_CATALOG.find((c) => c.id === spec.id);
+                    const matchingCatalog = MASTER_96_CATALOG.find((c) => (c.pieceCode === spec.piece || c.id === spec.id) && c.category === 'Cry State');
                     const isOwned = matchingCatalog ? Boolean(inventory[matchingCatalog.id]) : false;
                     const isEquipped = matchingCatalog ? equipped[matchingCatalog.piece] === matchingCatalog.id : false;
 

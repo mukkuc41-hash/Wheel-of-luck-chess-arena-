@@ -60,7 +60,7 @@ const DETAILED_PIECE_DATA: Record<
     fxCapNames: ['Pawn Amber Spark', 'Pawn Emerald Haze', 'Pawn Ruby Glint', 'Pawn Cobalt Edge'],
     fxOccNames: ['Pawn Silver Beacon', 'Pawn Solar Sparkle', 'Pawn Radiant Flare', 'Pawn Prism Ring'],
     cryName: 'Pawn Despair Wail',
-    cryDesc: 'Pawn dips downward with high-frequency micro-jitter and weeping amber soundwave rings (+2,500 PTS).',
+    cryDesc: 'Pawn dips downward with high-frequency micro-jitter and weeping amber soundwave rings (+5,000 PTS).',
     cryColor: '#d35400',
   },
   Knight: {
@@ -69,7 +69,7 @@ const DETAILED_PIECE_DATA: Record<
     fxCapNames: ['Knight Electric Arc', 'Knight Bronze Shield', 'Knight Neon Cyan Pulse', 'Knight Crimson Surge'],
     fxOccNames: ['Knight Storm Aura', 'Knight Gallop Surge', 'Knight Blue Plasma', 'Knight Golden Hoof'],
     cryName: 'Knight War Cry',
-    cryDesc: 'Knight stallion rears backward with aggressive hoof stamping and crackling electric blue voltage (+2,500 PTS).',
+    cryDesc: 'Knight stallion rears backward with aggressive hoof stamping and crackling electric blue voltage (+5,000 PTS).',
     cryColor: '#00d2ff',
   },
   Bishop: {
@@ -78,7 +78,7 @@ const DETAILED_PIECE_DATA: Record<
     fxCapNames: ['Bishop Holy Gold Aura', 'Bishop Mystic Purple Mist', 'Bishop Celestial White Flare', 'Bishop Emerald Ray'],
     fxOccNames: ['Bishop Sanctuary Glow', 'Bishop Celestial Beam', 'Bishop Astral Veil', 'Bishop Golden Cross'],
     cryName: 'Bishop Chant Echo',
-    cryDesc: 'Bishop tilts in sacred pendulum cadence while expanding radiant golden-violet cross fields (+2,500 PTS).',
+    cryDesc: 'Bishop tilts in sacred pendulum cadence while expanding radiant golden-violet cross fields (+5,000 PTS).',
     cryColor: '#8b5cf6',
   },
   Rook: {
@@ -87,7 +87,7 @@ const DETAILED_PIECE_DATA: Record<
     fxCapNames: ['Rook Steel Armor', 'Rook Magma Core', 'Rook Titanium Chrome', 'Rook Obsidian Dark'],
     fxOccNames: ['Rook Citadel Bastion', 'Rook Seismic Tremor', 'Rook Molten Foundry', 'Rook Aegis Ward'],
     cryName: 'Rook Siege Siren',
-    cryDesc: 'Rook battlements expand with deep resonant sub-bass horn blasts over boiling magma shockwaves (+2,500 PTS).',
+    cryDesc: 'Rook battlements expand with deep resonant sub-bass horn blasts over boiling magma shockwaves (+5,000 PTS).',
     cryColor: '#ef4444',
   },
   Queen: {
@@ -96,7 +96,7 @@ const DETAILED_PIECE_DATA: Record<
     fxCapNames: ['Queen Sovereign Gold', 'Queen Imperial Amethyst', 'Queen Diamond Prism', 'Queen Solar Flare'],
     fxOccNames: ['Queen Supernova Ray', 'Queen Celestial Tiara', 'Queen Prismatic Radiance', 'Queen Royal Corona'],
     cryName: 'Queen Sovereign Command',
-    cryDesc: 'Queen levitates vertically discharging triple-tier shockwave ripple rings and brilliant solar corona (+2,500 PTS).',
+    cryDesc: 'Queen levitates vertically discharging triple-tier shockwave ripple rings and brilliant solar corona (+5,000 PTS).',
     cryColor: '#ffd700',
   },
   King: {
@@ -105,7 +105,7 @@ const DETAILED_PIECE_DATA: Record<
     fxCapNames: ['King Imperial Gold Crown', 'King Platinum Sovereign', 'King Mystic Ruby Sovereign', 'King Eternal Realm'],
     fxOccNames: ['King Monarch Scepter', 'King Sovereign Aegis', 'King Golden Standard', 'King Imperial Diadem'],
     cryName: 'King Imperial Decree',
-    cryDesc: 'King thrusts royal crown upward unleashing magnificent platinum-gold sovereign shield dominance (+2,500 PTS).',
+    cryDesc: 'King thrusts royal crown upward unleashing magnificent platinum-gold sovereign shield dominance (+5,000 PTS).',
     cryColor: '#fbbf24',
   },
 };
@@ -166,7 +166,7 @@ export const MASTER_96_CATALOG: CatalogItem[] = (() => {
         secondaryColor: theme.secondary,
         badgeType: theme.badge,
         animClass: animClass,
-        price: 1000,
+        price: 5000,
       });
     }
 
@@ -186,7 +186,7 @@ export const MASTER_96_CATALOG: CatalogItem[] = (() => {
         secondaryColor: theme.secondary,
         badgeType: theme.badge,
         animClass: animClass,
-        price: 1000,
+        price: 5000,
       });
     }
 
@@ -205,7 +205,7 @@ export const MASTER_96_CATALOG: CatalogItem[] = (() => {
         secondaryColor: theme.secondary,
         badgeType: theme.badge,
         animClass: `style-${i}`,
-        price: 1000,
+        price: 5000,
       });
     }
 
@@ -224,11 +224,11 @@ export const MASTER_96_CATALOG: CatalogItem[] = (() => {
         secondaryColor: theme.secondary,
         badgeType: theme.badge,
         animClass: `style-${i}`,
-        price: 1000,
+        price: 5000,
       });
     }
 
-    // 5. Exclusive Cry State (Style 9 - 2,500 PTS)
+    // 5. Exclusive Cry State (Style 9 - 5,000 PTS)
     catalog.push({
       id: `item-cry-${p.code}`,
       piece: p.name,
@@ -241,7 +241,7 @@ export const MASTER_96_CATALOG: CatalogItem[] = (() => {
       secondaryColor: '#ffffff',
       badgeType: 'gold',
       animClass: 'piece-cry',
-      price: 2500,
+      price: 5000,
       isCryState: true,
     });
   });
@@ -351,7 +351,7 @@ export function purchaseCatalogItem(itemId: string): { success: boolean; message
     return { success: true, message: `${item.name} is already owned in your inventory!`, item };
   }
 
-  const price = item.price || 1000;
+  const price = item.price || 5000;
   const currentPts = getUserPoints();
   if (currentPts < price) {
     return {

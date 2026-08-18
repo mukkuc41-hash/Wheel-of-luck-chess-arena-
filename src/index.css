@@ -50,6 +50,42 @@
   animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
+/* 10,000 PTS Penalty Flash & Screen Shake */
+@keyframes penaltyFlashShake {
+  0% {
+    box-shadow: inset 0 0 100px rgba(239, 68, 68, 0.9), 0 0 60px rgba(220, 38, 38, 0.8);
+    filter: brightness(1.2) contrast(1.1);
+    transform: translate3d(0, 0, 0);
+  }
+  15% {
+    transform: translate3d(-8px, 4px, 0) rotate(-0.5deg);
+    box-shadow: inset 0 0 140px rgba(220, 38, 38, 0.95), 0 0 80px rgba(239, 68, 68, 0.9);
+  }
+  30% {
+    transform: translate3d(8px, -4px, 0) rotate(0.5deg);
+    box-shadow: inset 0 0 110px rgba(239, 68, 68, 0.85);
+  }
+  50% {
+    transform: translate3d(-5px, 2px, 0);
+    box-shadow: inset 0 0 70px rgba(220, 38, 38, 0.7);
+  }
+  75% {
+    transform: translate3d(3px, -1px, 0);
+    box-shadow: inset 0 0 40px rgba(239, 68, 68, 0.4);
+  }
+  100% {
+    box-shadow: inset 0 0 0 rgba(239, 68, 68, 0);
+    filter: none;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.penalty-flash {
+  animation: penaltyFlashShake 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) both !important;
+  outline: 4px solid rgba(239, 68, 68, 0.8) !important;
+  outline-offset: -4px;
+}
+
 @keyframes shockwaveExpand {
   0% {
     width: 10px;
@@ -776,7 +812,9 @@
   justify-content: center;
   width: 100%;
   height: 100%;
+  perspective: 600px;
   transform-style: preserve-3d;
+  will-change: transform, filter;
 }
 
 /* Dynamic 3D Cry Tear Droplets */
@@ -790,106 +828,116 @@
   pointer-events: none;
   filter: drop-shadow(0 0 8px #00d2ff);
   z-index: 45;
+  will-change: transform, opacity;
 }
 
 .piece-wrapper.under-attack .tear-left,
 .piece-cry .tear-left,
 .under-attack .tear-left {
-  left: 26%;
-  top: 30%;
+  left: 24%;
+  top: 28%;
   animation: dropTearFlow 0.75s linear infinite;
 }
 
 .piece-wrapper.under-attack .tear-right,
 .piece-cry .tear-right,
 .under-attack .tear-right {
-  right: 26%;
-  top: 30%;
-  animation: dropTearFlow 0.75s linear infinite 0.35s;
+  right: 24%;
+  top: 28%;
+  animation: dropTearFlow 0.75s linear infinite 0.38s;
 }
 
 @keyframes dropTearFlow {
-  0% { transform: translateY(0) scale(0.5); opacity: 0.95; }
-  70% { transform: translateY(32px) scale(1); opacity: 0.85; }
-  100% { transform: translateY(46px) scale(0.25); opacity: 0; }
+  0% { transform: translateY(0) scale(0.4); opacity: 0.95; }
+  60% { transform: translateY(28px) scale(1); opacity: 0.9; }
+  100% { transform: translateY(48px) scale(0.2); opacity: 0; }
 }
 
-/* 1. PAWN UNDER ATTACK */
+/* 1. PAWN UNDER ATTACK: Despair Wail */
+/* Hunches forward (rotateX 12deg) with high-frequency micro-jitter vibration and amber teardrop shadow pooling */
 .piece-wrapper.under-attack[data-current="P"],
 .piece-wrapper.under-attack[data-piece="P"],
 [data-piece="P"].under-attack,
 [data-piece="p"].under-attack {
-  animation: pawnAttackAnim 0.35s ease-in-out infinite alternate;
-  filter: drop-shadow(0 8px 20px rgba(211, 84, 0, 0.95));
+  animation: pawnAttackAnim 0.3s ease-in-out infinite alternate;
+  filter: drop-shadow(0 8px 18px rgba(211, 84, 0, 0.95)) drop-shadow(0 0 14px #d35400);
 }
 @keyframes pawnAttackAnim {
-  0% { transform: rotateX(12deg) translateY(2px) skewX(-2deg); }
-  100% { transform: rotateX(12deg) translateY(-2px) skewX(2deg); }
+  0% { transform: perspective(600px) rotateX(12deg) translateY(2px) translate3d(-1px, 0, 0) skewX(-1.5deg); }
+  50% { transform: perspective(600px) rotateX(14deg) translateY(5px) translate3d(1.5px, 0, 0) skewX(1.5deg); }
+  100% { transform: perspective(600px) rotateX(12deg) translateY(2px) translate3d(-1px, 0, 0) skewX(-1.5deg); }
 }
 
-/* 2. KNIGHT UNDER ATTACK */
+/* 2. KNIGHT UNDER ATTACK: War Roar */
+/* Rears backward (rotate -22deg), scaling up with electric static arcs and blue-white voltage lines */
 .piece-wrapper.under-attack[data-current="N"],
 .piece-wrapper.under-attack[data-piece="N"],
 [data-piece="N"].under-attack,
 [data-piece="n"].under-attack {
-  animation: knightAttackAnim 0.3s ease-in-out infinite alternate;
-  filter: drop-shadow(0 10px 24px rgba(52, 152, 219, 0.95));
+  animation: knightAttackAnim 0.35s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 18px #00d2ff) drop-shadow(0 0 28px #3b82f6) brightness(1.4);
 }
 @keyframes knightAttackAnim {
-  0% { transform: rotateX(15deg) rotateY(-20deg) translateY(3px); }
-  100% { transform: rotateX(18deg) rotateY(-25deg) translateY(-3px); }
+  0% { transform: perspective(600px) rotateX(14deg) rotate(-18deg) scale(1.06); }
+  100% { transform: perspective(600px) rotateX(20deg) rotate(-22deg) scale(1.2); }
 }
 
-/* 3. BISHOP UNDER ATTACK */
+/* 3. BISHOP UNDER ATTACK: Chant Echo */
+/* Sways side-to-side in rhythmic pendulum motion (rotate -12deg -> 12deg) with radiant golden-violet volumetric light shaft */
 .piece-wrapper.under-attack[data-current="B"],
 .piece-wrapper.under-attack[data-piece="B"],
 [data-piece="B"].under-attack,
 [data-piece="b"].under-attack {
-  animation: bishopAttackAnim 0.4s ease-in-out infinite alternate;
-  filter: drop-shadow(0 10px 24px rgba(155, 89, 182, 0.95));
+  animation: bishopAttackAnim 0.45s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 22px #FFD700) drop-shadow(0 0 18px #8b5cf6) brightness(1.4);
 }
 @keyframes bishopAttackAnim {
-  0% { transform: rotateX(10deg) rotateZ(-8deg); }
-  100% { transform: rotateX(10deg) rotateZ(8deg); }
+  0% { transform: perspective(600px) rotateX(12deg) rotateZ(-12deg) scale(1.05); }
+  50% { transform: perspective(600px) rotateX(14deg) rotateZ(12deg) scale(1.12); }
+  100% { transform: perspective(600px) rotateX(12deg) rotateZ(-12deg) scale(1.05); }
 }
 
-/* 4. ROOK UNDER ATTACK */
+/* 4. ROOK UNDER ATTACK: Siege Siren */
+/* Flares stone battlements (scaleX 1.2 scaleY 0.9) with deep subterranean red-orange magma fissure shadow & seismic vibrations */
 .piece-wrapper.under-attack[data-current="R"],
 .piece-wrapper.under-attack[data-piece="R"],
 [data-piece="R"].under-attack,
 [data-piece="r"].under-attack {
-  animation: rookAttackAnim 0.25s ease-in-out infinite alternate;
-  filter: drop-shadow(0 10px 24px rgba(231, 76, 60, 0.95));
+  animation: rookAttackAnim 0.28s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 22px #ef4444) drop-shadow(0 0 16px #f97316) brightness(1.5);
 }
 @keyframes rookAttackAnim {
-  0% { transform: rotateX(14deg) scaleX(1.02) scaleY(0.98); }
-  100% { transform: rotateX(14deg) scaleX(1.12) scaleY(0.92); }
+  0% { transform: perspective(600px) rotateX(12deg) scaleX(1.04) scaleY(0.96) translate3d(-1px, 0, 0); }
+  50% { transform: perspective(600px) rotateX(16deg) scaleX(1.2) scaleY(0.9) translate3d(2px, 0, 0); }
+  100% { transform: perspective(600px) rotateX(12deg) scaleX(1.04) scaleY(0.96) translate3d(-1px, 0, 0); }
 }
 
-/* 5. QUEEN UNDER ATTACK */
+/* 5. QUEEN UNDER ATTACK: Sovereign Command */
+/* Levitates off the board tile (translateY -14px) with intense blinding white-gold solar flare and expanding shockwave rings */
 .piece-wrapper.under-attack[data-current="Q"],
 .piece-wrapper.under-attack[data-piece="Q"],
 [data-piece="Q"].under-attack,
 [data-piece="q"].under-attack {
   animation: queenAttackAnim 0.4s ease-in-out infinite alternate;
-  filter: drop-shadow(0 12px 28px rgba(241, 196, 15, 0.95));
+  filter: drop-shadow(0 0 32px #ffd700) drop-shadow(0 0 20px #ffffff) brightness(1.8);
 }
 @keyframes queenAttackAnim {
-  0% { transform: rotateX(15deg) translateY(-8px) scale(1.06); }
-  100% { transform: rotateX(15deg) translateY(-14px) scale(1.1); }
+  0% { transform: perspective(600px) rotateX(12deg) translateY(-6px) scale(1.08); }
+  100% { transform: perspective(600px) rotateX(16deg) translateY(-14px) scale(1.18); }
 }
 
-/* 6. KING UNDER ATTACK */
+/* 6. KING UNDER ATTACK: Imperial Decree */
+/* Anchors down with absolute authority, dipping into tactical stance before springing into vertical stretch enveloped in platinum-gold shield dome */
 .piece-wrapper.under-attack[data-current="K"],
 .piece-wrapper.under-attack[data-piece="K"],
 [data-piece="K"].under-attack,
 [data-piece="k"].under-attack {
   animation: kingAttackAnim 0.35s ease-in-out infinite alternate;
-  filter: drop-shadow(0 14px 30px rgba(212, 175, 55, 1));
+  filter: drop-shadow(0 0 35px #ffd700) drop-shadow(0 0 22px #ffffff) brightness(1.7);
 }
 @keyframes kingAttackAnim {
-  0% { transform: rotateX(16deg) scale(1.08); }
-  100% { transform: rotateX(20deg) scale(1.15); }
+  0% { transform: perspective(600px) rotateX(18deg) translateY(4px) scale(1.06); }
+  100% { transform: perspective(600px) rotateX(8deg) translateY(-6px) scale(1.22); }
 }
 
 
