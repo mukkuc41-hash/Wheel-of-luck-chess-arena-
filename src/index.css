@@ -1,0 +1,897 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   MASTER WEB ANIMATION & TRANSITION LIBRARY - GLOBAL STYLES & UTILITIES
+   ========================================================================== */
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 0 0 rgba(155, 81, 224, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(155, 81, 224, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(155, 81, 224, 0); }
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+@keyframes bounce-drop {
+  0% { transform: translateY(-40px) scaleY(1.2); opacity: 0; }
+  60% { transform: translateY(10px) scaleY(0.9); opacity: 1; }
+  80% { transform: translateY(-4px) scaleY(1.05); }
+  100% { transform: translateY(0) scaleY(1); }
+}
+
+@keyframes textShimmer {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Micro Interaction Utility Classes */
+.btn-lift {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.btn-lift:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(102, 252, 241, 0.3);
+}
+.btn-lift:active {
+  transform: translateY(-1px) scale(0.98);
+}
+
+.shake-active {
+  animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes shockwaveExpand {
+  0% {
+    width: 10px;
+    height: 10px;
+    opacity: 0.95;
+    transform: translate(-50%, -50%) scale(1);
+    box-shadow: 0 0 20px currentColor, inset 0 0 10px currentColor;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    width: 140px;
+    height: 140px;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.6);
+    box-shadow: 0 0 35px currentColor, inset 0 0 20px currentColor;
+  }
+}
+
+@keyframes badgeFloatUp {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0) scale(0.6);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -15px) scale(1.15);
+  }
+  40% {
+    transform: translate(-50%, -25px) scale(1);
+  }
+  80% {
+    opacity: 0.9;
+    transform: translate(-50%, -40px) scale(0.95);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -55px) scale(0.8);
+  }
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.5);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.8);
+}
+
+/* ========================================================================
+   CHESS-WHEEL-ARENA: 96-STATE CAPTURE & OCCUPATION MATRIX ENGINE
+   Full Piece Spectrum (P, N, B, R, Q, K) x 8 States (4 Capturing + 4 Occupying)
+   Combined with 48 Visual Effect Modifiers = 96 Unique Hardware-Accelerated States
+   ======================================================================== */
+
+:root {
+  --base-speed: 0.5s;
+  --cap-speed: 0.5s;
+  --occ-speed: 0.5s;
+  --fx-primary: #ffffff;
+  --fx-secondary: #ffcc00;
+}
+
+/* Base State Classes Triggered by Game Engine with GPU Hardware Acceleration */
+.piece-capturing {
+  animation-duration: var(--cap-speed, 0.5s) !important;
+  animation-fill-mode: forwards !important;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  z-index: 30 !important;
+  pointer-events: none !important;
+  will-change: transform, opacity, filter !important;
+  backface-visibility: hidden !important;
+  transform-style: preserve-3d !important;
+}
+
+.piece-occupying {
+  animation-duration: var(--occ-speed, 0.5s) !important;
+  animation-fill-mode: forwards !important;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
+  z-index: 20 !important;
+  will-change: transform, opacity, filter !important;
+  backface-visibility: hidden !important;
+  transform-style: preserve-3d !important;
+}
+
+/* ========================================================================
+   MASTER HARDWARE-ACCELERATED KEYFRAME POOL
+   Strictly isolated, non-overlapping animations across all 6 chess pieces
+   ======================================================================== */
+
+/* --- PAWN SPECIFIC ANIMATIONS --- */
+/* Pawn Cap 1: Dissolve Collapse (scale 1->0 with instant opacity fade) */
+@keyframes anim-pawn-cap-dissolve-collapse {
+  0% { opacity: 1; transform: scale3d(1, 1, 1); filter: brightness(1) blur(0px); }
+  50% { opacity: 0.6; transform: scale3d(0.5, 0.5, 1); filter: brightness(1.2) blur(1px); }
+  100% { opacity: 0; transform: scale3d(0, 0, 1); filter: brightness(0.2) blur(4px); }
+}
+/* Pawn Cap 2: Spiral Sink (360° rotation with downward translation offset) */
+@keyframes anim-pawn-cap-spiral-sink {
+  0% { opacity: 1; transform: rotate(0deg) translate3d(0, 0, 0) scale3d(1, 1, 1); }
+  60% { opacity: 0.7; transform: rotate(220deg) translate3d(0, 15px, 0) scale3d(0.6, 0.6, 1); }
+  100% { opacity: 0; transform: rotate(360deg) translate3d(0, 30px, 0) scale3d(0.05, 0.05, 1); }
+}
+/* Pawn Cap 3: Dust Shatter (rapid jitter translation + horizontal skewing) */
+@keyframes anim-pawn-cap-dust-shatter {
+  0% { opacity: 1; transform: translate3d(0, 0, 0) skewX(0deg); }
+  20% { opacity: 0.9; transform: translate3d(-4px, 2px, 0) skewX(15deg) scale3d(1.05, 1.05, 1); }
+  40% { opacity: 0.7; transform: translate3d(5px, -3px, 0) skewX(-15deg) scale3d(0.9, 0.9, 1); }
+  70% { opacity: 0.4; transform: translate3d(-6px, 6px, 0) skewX(20deg) scale3d(0.5, 0.5, 1); }
+  100% { opacity: 0; transform: translate3d(8px, 12px, 0) skewX(30deg) scale3d(0.1, 0.1, 1); filter: blur(3px); }
+}
+/* Pawn Cap 4: Fade Vacuum (scales down from center with brightness spike) */
+@keyframes anim-pawn-cap-fade-vacuum {
+  0% { opacity: 1; transform: scale3d(1, 1, 1); filter: brightness(1); }
+  30% { opacity: 1; transform: scale3d(0.8, 0.8, 1); filter: brightness(3) drop-shadow(0 0 10px #e2e8f0); }
+  70% { opacity: 0.5; transform: scale3d(0.3, 0.3, 1); filter: brightness(5); }
+  100% { opacity: 0; transform: scale3d(0.01, 0.01, 1); filter: brightness(10) blur(4px); }
+}
+
+/* Pawn Occ 1: Rise Materialization (translateY(15px) to 0 with smooth fade-in) */
+@keyframes anim-pawn-occ-rise-materialization {
+  0% { opacity: 0; transform: translate3d(0, 15px, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+/* Pawn Occ 2: Pop Bounce (scale(0) -> scale(1.15) -> scale(1)) */
+@keyframes anim-pawn-occ-pop-bounce {
+  0% { opacity: 0; transform: scale3d(0, 0, 1); }
+  60% { opacity: 1; transform: scale3d(1.15, 1.15, 1); }
+  85% { transform: scale3d(0.95, 0.95, 1); }
+  100% { opacity: 1; transform: scale3d(1, 1, 1); }
+}
+/* Pawn Occ 3: Slide Glide (translateX(-20px) to 0) */
+@keyframes anim-pawn-occ-slide-glide {
+  0% { opacity: 0; transform: translate3d(-20px, 0, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+/* Pawn Occ 4: Spin Lock (unwinds from -180° rotation into upright 0°) */
+@keyframes anim-pawn-occ-spin-lock {
+  0% { opacity: 0; transform: rotate(-180deg) scale3d(0.5, 0.5, 1); }
+  80% { opacity: 1; transform: rotate(10deg) scale3d(1.05, 1.05, 1); }
+  100% { opacity: 1; transform: rotate(0deg) scale3d(1, 1, 1); }
+}
+/* Pawn Cry State: Despair Wail (translateY(8px), high-frequency micro-jitter, soundwave pulse ring) */
+@keyframes anim-pawn-cry-despair-wail {
+  0% { transform: translate3d(0, 0, 0) scale3d(1, 1, 1); }
+  15% { transform: translate3d(0, 8px, 0) scale3d(0.95, 0.95, 1); }
+  25% { transform: translate3d(-2px, 8px, 0); }
+  35% { transform: translate3d(2px, 8px, 0); }
+  45% { transform: translate3d(-2px, 8px, 0); }
+  55% { transform: translate3d(2px, 8px, 0); }
+  75% { transform: translate3d(0, 6px, 0) scale3d(1.04, 1.04, 1); }
+  100% { transform: translate3d(0, 0, 0) scale3d(1, 1, 1); }
+}
+
+/* --- KNIGHT SPECIFIC ANIMATIONS --- */
+/* Knight Cap 1: L-Shaped Vault Vanish (translate diagonally upward shrinking to 0) */
+@keyframes anim-knight-cap-vault-vanish {
+  0% { opacity: 1; transform: translate3d(0, 0, 0) scale3d(1, 1, 1); }
+  40% { opacity: 0.9; transform: translate3d(-10px, -20px, 0) scale3d(1.15, 1.15, 1) rotate(-10deg); }
+  100% { opacity: 0; transform: translate3d(-25px, -45px, 0) scale3d(0, 0, 1) rotate(-25deg); }
+}
+/* Knight Cap 2: Spin Vortex (720° rotation with exponential scaling down) */
+@keyframes anim-knight-cap-spin-vortex {
+  0% { opacity: 1; transform: rotate(0deg) scale3d(1, 1, 1); }
+  50% { opacity: 0.85; transform: rotate(360deg) scale3d(0.7, 0.7, 1); }
+  100% { opacity: 0; transform: rotate(720deg) scale3d(0, 0, 1); }
+}
+/* Knight Cap 3: Impact Crater (scale(1.2) before dropping downward with opacity fade) */
+@keyframes anim-knight-cap-impact-crater {
+  0% { opacity: 1; transform: scale3d(1, 1, 1); }
+  30% { opacity: 1; transform: scale3d(1.25, 1.25, 1) translateY(-6px); }
+  60% { opacity: 0.8; transform: scale3d(1.1, 0.7, 1) translateY(15px); }
+  100% { opacity: 0; transform: scale3d(0.2, 0.2, 1) translateY(30px); }
+}
+/* Knight Cap 4: Portal Snap (rapid keyframe jumps with alternating opacity) */
+@keyframes anim-knight-cap-portal-snap {
+  0% { opacity: 1; transform: translate3d(0, 0, 0); }
+  20% { opacity: 0.2; transform: translate3d(-6px, 4px, 0) scale3d(1.1, 0.9, 1); }
+  40% { opacity: 0.9; transform: translate3d(5px, -5px, 0); }
+  60% { opacity: 0.15; transform: translate3d(-4px, -2px, 0); }
+  80% { opacity: 0.8; transform: translate3d(2px, 3px, 0) scale3d(0.4, 0.4, 1); }
+  100% { opacity: 0; transform: scale3d(0, 0, 1); }
+}
+
+/* Knight Occ 1: Vault Entry (drops down from translateY(-30px) with heavy impact) */
+@keyframes anim-knight-occ-vault-entry {
+  0% { opacity: 0; transform: translate3d(0, -30px, 0) scale3d(0.7, 1.2, 1); }
+  60% { opacity: 1; transform: translate3d(0, 4px, 0) scale3d(1.15, 0.85, 1); }
+  85% { transform: translate3d(0, -2px, 0) scale3d(0.96, 1.04, 1); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale3d(1, 1, 1); }
+}
+/* Knight Occ 2: Orbital Sweep (swings onto square in arched semi-circular scale transition) */
+@keyframes anim-knight-occ-orbital-sweep {
+  0% { opacity: 0; transform: translate3d(-35px, -25px, 0) rotate(-60deg) scale3d(0.4, 0.4, 1); }
+  65% { opacity: 0.95; transform: translate3d(4px, 2px, 0) rotate(10deg) scale3d(1.08, 1.08, 1); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) rotate(0deg) scale3d(1, 1, 1); }
+}
+/* Knight Occ 3: Kinetic Charge (translates rapidly from the side with motion streak) */
+@keyframes anim-knight-occ-kinetic-charge {
+  0% { opacity: 0; transform: translate3d(-45px, 0, 0) skewX(-20deg) scale3d(1.3, 0.8, 1); }
+  70% { opacity: 1; transform: translate3d(4px, 0, 0) skewX(5deg) scale3d(0.95, 1.05, 1); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) skewX(0deg) scale3d(1, 1, 1); }
+}
+/* Knight Occ 4: Stride Lock (transitions sharply from tilted angle rotate(-15deg) into upright) */
+@keyframes anim-knight-occ-stride-lock {
+  0% { opacity: 0; transform: rotate(-25deg) scale3d(0.6, 0.6, 1); }
+  70% { opacity: 1; transform: rotate(4deg) scale3d(1.08, 1.08, 1); }
+  100% { opacity: 1; transform: rotate(0deg) scale3d(1, 1, 1); }
+}
+/* Knight Cry State: War Cry (horse head rears backward rotate(-25deg), scales up scale(1.1) hoof stamping) */
+@keyframes anim-knight-cry-war-cry {
+  0% { transform: rotate(0deg) scale3d(1, 1, 1); }
+  20% { transform: rotate(-25deg) translate3d(0, -10px, 0) scale3d(1.15, 1.15, 1); }
+  35% { transform: rotate(-28deg) translate3d(0, -12px, 0) scale3d(1.18, 1.18, 1); }
+  50% { transform: rotate(-20deg) translate3d(0, 4px, 0) scale3d(1.1, 0.9, 1); }
+  65% { transform: rotate(-24deg) translate3d(0, -6px, 0) scale3d(1.08, 1.08, 1); }
+  85% { transform: rotate(-8deg) translate3d(0, 0, 0) scale3d(1.02, 1.02, 1); }
+  100% { transform: rotate(0deg) scale3d(1, 1, 1); }
+}
+
+/* --- BISHOP SPECIFIC ANIMATIONS --- */
+/* Bishop Cap 1: Diagonal Slicing Dissolve (skews diagonally skew(30deg, -30deg) shrinking to 0) */
+@keyframes anim-bishop-cap-diagonal-slice {
+  0% { opacity: 1; transform: skew(0deg, 0deg) scale3d(1, 1, 1); }
+  45% { opacity: 0.8; transform: skew(25deg, -25deg) scale3d(0.7, 0.7, 1); filter: brightness(1.5); }
+  100% { opacity: 0; transform: skew(45deg, -45deg) scale3d(0, 0, 1); filter: blur(4px); }
+}
+/* Bishop Cap 2: Prism Refraction (splits color channels via multi-layered hue rotations) */
+@keyframes anim-bishop-cap-prism-refraction {
+  0% { opacity: 1; transform: scale3d(1, 1, 1); filter: hue-rotate(0deg) brightness(1); }
+  50% { opacity: 0.75; transform: scale3d(1.2, 1.2, 1) rotate(45deg); filter: hue-rotate(180deg) brightness(2.5); }
+  100% { opacity: 0; transform: scale3d(0.05, 0.05, 1) rotate(90deg); filter: hue-rotate(360deg) brightness(5); }
+}
+/* Bishop Cap 3: Diagonal Sweep Out (translates along 45° vector off-screen while fading) */
+@keyframes anim-bishop-cap-diagonal-sweep {
+  0% { opacity: 1; transform: translate3d(0, 0, 0); }
+  100% { opacity: 0; transform: translate3d(40px, -40px, 0) scale3d(0.2, 0.2, 1); }
+}
+/* Bishop Cap 4: Mystic Implosion (expands briefly scale(1.3) then instantly collapses inward) */
+@keyframes anim-bishop-cap-mystic-implosion {
+  0% { opacity: 1; transform: scale3d(1, 1, 1); }
+  35% { opacity: 1; transform: scale3d(1.35, 1.35, 1); filter: brightness(2.5) drop-shadow(0 0 16px #ec4899); }
+  60% { opacity: 0.8; transform: scale3d(0.4, 0.4, 1); filter: brightness(4); }
+  100% { opacity: 0; transform: scale3d(0, 0, 1); filter: brightness(10); }
+}
+
+/* Bishop Occ 1: Diagonal Glide In (translates diagonally from top-left to center) */
+@keyframes anim-bishop-occ-diagonal-glide {
+  0% { opacity: 0; transform: translate3d(-35px, -35px, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+/* Bishop Occ 2: Divine Beam Drop (drops from above with vertical scale stretch scaleY(1.5)->1) */
+@keyframes anim-bishop-occ-divine-beam {
+  0% { opacity: 0; transform: translate3d(0, -40px, 0) scale3d(0.7, 1.6, 1); filter: brightness(3); }
+  70% { opacity: 1; transform: translate3d(0, 3px, 0) scale3d(1.1, 0.9, 1); filter: brightness(1.4); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale3d(1, 1, 1); filter: brightness(1); }
+}
+/* Bishop Occ 3: Tilt Materialize (rotates from 45° tilt to upright while scaling up) */
+@keyframes anim-bishop-occ-tilt-materialize {
+  0% { opacity: 0; transform: rotate(45deg) scale3d(0.3, 0.3, 1); }
+  75% { opacity: 1; transform: rotate(-5deg) scale3d(1.08, 1.08, 1); }
+  100% { opacity: 1; transform: rotate(0deg) scale3d(1, 1, 1); }
+}
+/* Bishop Occ 4: Aura Expand (blooms outward from tiny central point scale(0.1)->1) */
+@keyframes anim-bishop-occ-aura-expand {
+  0% { opacity: 0; transform: scale3d(0.1, 0.1, 1); filter: drop-shadow(0 0 20px #8b5cf6); }
+  65% { opacity: 0.95; transform: scale3d(1.18, 1.18, 1); filter: drop-shadow(0 0 10px #8b5cf6); }
+  100% { opacity: 1; transform: scale3d(1, 1, 1); filter: drop-shadow(0 0 2px transparent); }
+}
+/* Bishop Cry State: Chant Echo (tilts side-to-side pendulum motion rotate(-10deg)->rotate(10deg) with expanding aura) */
+@keyframes anim-bishop-cry-chant-echo {
+  0% { transform: rotate(0deg) scale3d(1, 1, 1); }
+  20% { transform: rotate(-12deg) scale3d(1.06, 1.06, 1); }
+  40% { transform: rotate(12deg) scale3d(1.08, 1.08, 1); }
+  60% { transform: rotate(-8deg) scale3d(1.05, 1.05, 1); }
+  80% { transform: rotate(6deg) scale3d(1.02, 1.02, 1); }
+  100% { transform: rotate(0deg) scale3d(1, 1, 1); }
+}
+
+/* --- ROOK SPECIFIC ANIMATIONS --- */
+/* Rook Cap 1: Fortress Demolition (shakes violently then drops straight down) */
+@keyframes anim-rook-cap-fortress-demolition {
+  0% { opacity: 1; transform: translate3d(0, 0, 0); }
+  15% { transform: translate3d(-4px, 0, 0); }
+  30% { transform: translate3d(5px, 0, 0); }
+  45% { transform: translate3d(-3px, 2px, 0); }
+  60% { opacity: 0.9; transform: translate3d(4px, 8px, 0) scale3d(0.9, 0.9, 1); }
+  100% { opacity: 0; transform: translate3d(0, 35px, 0) scale3d(0.2, 0.2, 1); }
+}
+/* Rook Cap 2: Laser Grid Erasure (horizontal scanline wipe effect with opacity reduction) */
+@keyframes anim-rook-cap-laser-grid {
+  0% { opacity: 1; transform: scale3d(1, 1, 1); filter: brightness(1); }
+  30% { opacity: 0.9; transform: scale3d(1.1, 0.9, 1); filter: brightness(2.5) hue-rotate(180deg); }
+  65% { opacity: 0.5; transform: scale3d(1.3, 0.1, 1); filter: brightness(4); }
+  100% { opacity: 0; transform: scale3d(0, 0.02, 1); }
+}
+/* Rook Cap 3: Heavy Impact Smash (slams downward, expands wide scaleX(1.3), shrinks to 0) */
+@keyframes anim-rook-cap-heavy-smash {
+  0% { opacity: 1; transform: scale3d(1, 1, 1) translateY(0); }
+  35% { opacity: 1; transform: scale3d(1.35, 0.65, 1) translateY(14px); filter: brightness(1.8); }
+  65% { opacity: 0.6; transform: scale3d(1.5, 0.2, 1) translateY(24px); }
+  100% { opacity: 0; transform: scale3d(0, 0, 1) translateY(30px); }
+}
+/* Rook Cap 4: Structural Collapse (rotates backward while sinking into tile floor) */
+@keyframes anim-rook-cap-structural-collapse {
+  0% { opacity: 1; transform: rotate(0deg) scale3d(1, 1, 1); }
+  40% { opacity: 0.85; transform: rotate(18deg) translate3d(6px, 12px, 0) scale3d(0.8, 0.8, 1); }
+  100% { opacity: 0; transform: rotate(45deg) translate3d(15px, 35px, 0) scale3d(0.1, 0.1, 1); }
+}
+
+/* Rook Occ 1: Orthogonal Slide (slides straight along X/Y axis into position) */
+@keyframes anim-rook-occ-orthogonal-slide {
+  0% { opacity: 0; transform: translate3d(-35px, 0, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+/* Rook Occ 2: Fortress Rise (rises vertically from deep ground translateY(40px)->0) */
+@keyframes anim-rook-occ-fortress-rise {
+  0% { opacity: 0; transform: translate3d(0, 40px, 0) scale3d(0.8, 0.8, 1); }
+  80% { opacity: 1; transform: translate3d(0, -3px, 0) scale3d(1.04, 1.04, 1); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale3d(1, 1, 1); }
+}
+/* Rook Occ 3: Solid Anchor Drop (drops from translateY(-50px) with squash-and-stretch landing) */
+@keyframes anim-rook-occ-anchor-drop {
+  0% { opacity: 0; transform: translate3d(0, -50px, 0) scale3d(0.8, 1.3, 1); }
+  60% { opacity: 1; transform: translate3d(0, 5px, 0) scale3d(1.25, 0.75, 1); }
+  85% { transform: translate3d(0, -2px, 0) scale3d(0.95, 1.05, 1); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale3d(1, 1, 1); }
+}
+/* Rook Occ 4: Modular Assembly (piece parts assemble from scattered offsets into center) */
+@keyframes anim-rook-occ-modular-assembly {
+  0% { opacity: 0; transform: scale3d(1.5, 1.5, 1) rotate(-15deg); filter: blur(4px); }
+  70% { opacity: 1; transform: scale3d(0.95, 0.95, 1) rotate(2deg); filter: blur(0px); }
+  100% { opacity: 1; transform: scale3d(1, 1, 1) rotate(0deg); }
+}
+/* Rook Cry State: Siege Siren (battlements expand outward and contract scaleX(1.15) scaleY(0.95) horn blast) */
+@keyframes anim-rook-cry-siege-siren {
+  0% { transform: scale3d(1, 1, 1); }
+  20% { transform: scale3d(1.18, 0.9, 1); }
+  35% { transform: scale3d(0.92, 1.12, 1); }
+  50% { transform: scale3d(1.15, 0.92, 1); }
+  70% { transform: scale3d(0.96, 1.06, 1); }
+  85% { transform: scale3d(1.04, 0.98, 1); }
+  100% { transform: scale3d(1, 1, 1); }
+}
+
+/* --- QUEEN SPECIFIC ANIMATIONS --- */
+/* Queen Cap 1: Imperial Disintegration (scales up to 1.3 with golden radiance, shatters to 0) */
+@keyframes anim-queen-cap-imperial-disintegration {
+  0% { opacity: 1; transform: scale3d(1, 1, 1); filter: brightness(1); }
+  40% { opacity: 1; transform: scale3d(1.35, 1.35, 1); filter: brightness(3) drop-shadow(0 0 20px #ffd700); }
+  70% { opacity: 0.6; transform: scale3d(0.7, 0.7, 1); filter: brightness(6); }
+  100% { opacity: 0; transform: scale3d(0, 0, 1); filter: brightness(10) blur(6px); }
+}
+/* Queen Cap 2: Royal Vortex (spins 1080° 3 full rotations while shrinking inward) */
+@keyframes anim-queen-cap-royal-vortex {
+  0% { opacity: 1; transform: rotate(0deg) scale3d(1, 1, 1); }
+  50% { opacity: 0.8; transform: rotate(540deg) scale3d(0.6, 0.6, 1); }
+  100% { opacity: 0; transform: rotate(1080deg) scale3d(0, 0, 1); }
+}
+/* Queen Cap 3: Singularity Warp (distorts aspect ratio scale(1.5, 0.2) collapsing into thin light beam) */
+@keyframes anim-queen-cap-singularity-warp {
+  0% { opacity: 1; transform: scale3d(1, 1, 1); }
+  35% { opacity: 1; transform: scale3d(1.6, 0.25, 1); filter: brightness(3.5) drop-shadow(0 0 25px #00f2fe); }
+  70% { opacity: 0.5; transform: scale3d(0.1, 2.5, 1); filter: brightness(6); }
+  100% { opacity: 0; transform: scale3d(0, 0, 1); }
+}
+/* Queen Cap 4: Royal Shockwave (pulses outward twice in scale before fading to 0) */
+@keyframes anim-queen-cap-royal-shockwave {
+  0% { opacity: 1; transform: scale3d(1, 1, 1); }
+  25% { transform: scale3d(1.25, 1.25, 1); filter: drop-shadow(0 0 15px #d946ef); }
+  50% { transform: scale3d(0.9, 0.9, 1); }
+  75% { transform: scale3d(1.4, 1.4, 1); opacity: 0.7; filter: drop-shadow(0 0 25px #d946ef); }
+  100% { opacity: 0; transform: scale3d(0.1, 0.1, 1); }
+}
+
+/* Queen Occ 1: Majestic Descent (floats down smoothly from translateY(-35px) with royal glowing trail) */
+@keyframes anim-queen-occ-majestic-descent {
+  0% { opacity: 0; transform: translate3d(0, -35px, 0) scale3d(0.8, 0.8, 1); filter: drop-shadow(0 0 20px #ffd700); }
+  70% { opacity: 1; transform: translate3d(0, 3px, 0) scale3d(1.06, 1.06, 1); filter: drop-shadow(0 0 10px #ffd700); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale3d(1, 1, 1); filter: drop-shadow(0 0 2px transparent); }
+}
+/* Queen Occ 2: Sovereign Expansion (expands outward from glowing central point scale(0.2)->1) */
+@keyframes anim-queen-occ-sovereign-expansion {
+  0% { opacity: 0; transform: scale3d(0.2, 0.2, 1); filter: brightness(4) drop-shadow(0 0 25px gold); }
+  60% { opacity: 1; transform: scale3d(1.15, 1.15, 1); filter: brightness(1.6); }
+  100% { opacity: 1; transform: scale3d(1, 1, 1); filter: brightness(1); }
+}
+/* Queen Occ 3: Omnidirectional Glide (glides smoothly from diagonal offset translate(-25px, 25px)->0) */
+@keyframes anim-queen-occ-omnidirectional-glide {
+  0% { opacity: 0; transform: translate3d(-30px, 30px, 0) scale3d(0.7, 0.7, 1); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale3d(1, 1, 1); }
+}
+/* Queen Occ 4: Crown Emergence (scales up from crown downward with sparkle filter) */
+@keyframes anim-queen-occ-crown-emergence {
+  0% { opacity: 0; transform: scale3d(0.5, 0.1, 1) translateY(-20px); filter: brightness(3); }
+  60% { opacity: 1; transform: scale3d(1.1, 1.1, 1) translateY(2px); filter: brightness(1.5); }
+  100% { opacity: 1; transform: scale3d(1, 1, 1) translateY(0); filter: brightness(1); }
+}
+/* Queen Cry State: Sovereign Command (floats translateY(-12px), triple-tier shockwave ripple rings, golden corona) */
+@keyframes anim-queen-cry-sovereign-command {
+  0% { transform: translate3d(0, 0, 0) scale3d(1, 1, 1); }
+  25% { transform: translate3d(0, -14px, 0) scale3d(1.18, 1.18, 1); }
+  45% { transform: translate3d(0, -16px, 0) scale3d(1.22, 1.22, 1); filter: drop-shadow(0 0 25px gold) brightness(1.6); }
+  65% { transform: translate3d(0, -10px, 0) scale3d(1.12, 1.12, 1); }
+  85% { transform: translate3d(0, -2px, 0) scale3d(1.04, 1.04, 1); }
+  100% { transform: translate3d(0, 0, 0) scale3d(1, 1, 1); }
+}
+
+/* --- KING SPECIFIC ANIMATIONS --- */
+/* King Cap 1: Throne Collapse (sinks straight down into board translateY(30px) fading to 0) */
+@keyframes anim-king-cap-throne-collapse {
+  0% { opacity: 1; transform: translate3d(0, 0, 0) scale3d(1, 1, 1); }
+  50% { opacity: 0.7; transform: translate3d(0, 15px, 0) scale3d(0.8, 0.8, 1); }
+  100% { opacity: 0; transform: translate3d(0, 35px, 0) scale3d(0.2, 0.2, 1); }
+}
+/* King Cap 2: Imperial Shatter (drifting debris elements scale(1.2) rotate(15deg)) */
+@keyframes anim-king-cap-imperial-shatter {
+  0% { opacity: 1; transform: scale3d(1, 1, 1) rotate(0deg); }
+  35% { opacity: 0.9; transform: scale3d(1.25, 1.25, 1) rotate(15deg) translate3d(8px, 6px, 0); filter: brightness(1.6); }
+  70% { opacity: 0.5; transform: scale3d(0.8, 0.8, 1) rotate(35deg) translate3d(16px, 20px, 0); }
+  100% { opacity: 0; transform: scale3d(0.1, 0.1, 1) rotate(50deg) translate3d(24px, 35px, 0); filter: blur(4px); }
+}
+/* King Cap 3: Golden Fadeout (slow solemn fade-out coupled with lingering gold light residue) */
+@keyframes anim-king-cap-golden-fadeout {
+  0% { opacity: 1; transform: scale3d(1, 1, 1); filter: drop-shadow(0 0 15px #ffd700); }
+  50% { opacity: 0.75; transform: scale3d(1.05, 1.05, 1); filter: drop-shadow(0 0 25px #ffd700) brightness(1.4); }
+  100% { opacity: 0; transform: scale3d(0.85, 0.85, 1); filter: drop-shadow(0 0 35px #ffd700) brightness(0.2); }
+}
+/* King Cap 4: Realm Seal (compresses vertically into flat floor seal imprint scale(0.8, 0.1)) */
+@keyframes anim-king-cap-realm-seal {
+  0% { opacity: 1; transform: scale3d(1, 1, 1); }
+  45% { opacity: 0.8; transform: scale3d(1.2, 0.4, 1) translateY(10px); filter: brightness(2); }
+  100% { opacity: 0; transform: scale3d(1.4, 0.05, 1) translateY(20px); filter: blur(2px); }
+}
+
+/* King Occ 1: Royal Portal Arrival (swirling circular portal ring scaling up) */
+@keyframes anim-king-occ-royal-portal {
+  0% { opacity: 0; transform: scale3d(0.2, 0.2, 1) rotate(-180deg); filter: brightness(4) drop-shadow(0 0 25px #ffd700); }
+  65% { opacity: 1; transform: scale3d(1.12, 1.12, 1) rotate(15deg); filter: brightness(1.5); }
+  100% { opacity: 1; transform: scale3d(1, 1, 1) rotate(0deg); filter: brightness(1); }
+}
+/* King Occ 2: Throne Summon (rises upward into place from deep baseline translateY(25px)->0) */
+@keyframes anim-king-occ-throne-summon {
+  0% { opacity: 0; transform: translate3d(0, 30px, 0) scale3d(0.8, 0.8, 1); }
+  75% { opacity: 1; transform: translate3d(0, -3px, 0) scale3d(1.05, 1.05, 1); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale3d(1, 1, 1); }
+}
+/* King Occ 3: Sovereign Step (steps firmly from adjacent square with authoritative posture) */
+@keyframes anim-king-occ-sovereign-step {
+  0% { opacity: 0; transform: translate3d(-25px, 0, 0) scale3d(0.9, 0.9, 1); }
+  70% { opacity: 1; transform: translate3d(3px, 0, 0) scale3d(1.05, 1.05, 1); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale3d(1, 1, 1); }
+}
+/* King Occ 4: Divine Coronation (descends within vertical pillar of golden light translateY(-40px)->0) */
+@keyframes anim-king-occ-divine-coronation {
+  0% { opacity: 0; transform: translate3d(0, -45px, 0) scale3d(0.8, 1.4, 1); filter: brightness(3.5) drop-shadow(0 0 30px #ffd700); }
+  65% { opacity: 1; transform: translate3d(0, 4px, 0) scale3d(1.12, 0.9, 1); filter: brightness(1.8); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale3d(1, 1, 1); filter: brightness(1); }
+}
+/* King Cry State: Imperial Decree (bows slightly rotate(5deg), thrusts crown upward translateY(-8px) scale(1.15)) */
+@keyframes anim-king-cry-imperial-decree {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg) scale3d(1, 1, 1); }
+  20% { transform: translate3d(0, 4px, 0) rotate(6deg) scale3d(0.96, 0.96, 1); }
+  45% { transform: translate3d(0, -10px, 0) rotate(-2deg) scale3d(1.2, 1.2, 1); filter: drop-shadow(0 0 30px #ffd700) brightness(1.6); }
+  65% { transform: translate3d(0, -6px, 0) rotate(0deg) scale3d(1.14, 1.14, 1); }
+  85% { transform: translate3d(0, -2px, 0) scale3d(1.05, 1.05, 1); }
+  100% { transform: translate3d(0, 0, 0) rotate(0deg) scale3d(1, 1, 1); }
+}
+
+/* Fallback Core Animations */
+@keyframes anim-cap-dissolve {
+  0% { opacity: 1; transform: scale3d(1, 1, 1); }
+  100% { opacity: 0; transform: scale3d(0.1, 0.1, 1); }
+}
+@keyframes anim-cap-spin-vortex {
+  0% { opacity: 1; transform: rotate(0deg) scale3d(1, 1, 1); }
+  100% { opacity: 0; transform: rotate(720deg) scale3d(0, 0, 1); }
+}
+@keyframes anim-cap-hyper-shatter {
+  0% { opacity: 1; transform: scale3d(1, 1, 1); }
+  100% { opacity: 0; transform: translate3d(0, 30px, 0) scale3d(0.1, 0.1, 1); }
+}
+@keyframes anim-cap-singularity-warp {
+  0% { opacity: 1; transform: scale3d(1, 1, 1); }
+  100% { opacity: 0; transform: scale3d(0, 0, 1) rotate(360deg); }
+}
+@keyframes anim-occ-portal-arrival {
+  0% { opacity: 0; transform: scale3d(1.8, 1.8, 1); }
+  100% { opacity: 1; transform: scale3d(1, 1, 1); }
+}
+@keyframes anim-occ-golden-halo {
+  0% { opacity: 0; transform: translate3d(0, -30px, 0) scale3d(0.6, 0.6, 1); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale3d(1, 1, 1); }
+}
+@keyframes anim-occ-solar-rift {
+  0% { opacity: 0; transform: scale3d(0.3, 0.3, 1); }
+  100% { opacity: 1; transform: scale3d(1, 1, 1); }
+}
+@keyframes anim-occ-flank-dash {
+  0% { opacity: 0; transform: translate3d(-30px, 0, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+/* Base Cry State Class */
+.piece-cry {
+  animation-duration: 0.9s !important;
+  animation-fill-mode: forwards !important;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  z-index: 35 !important;
+  will-change: transform, opacity, filter !important;
+  backface-visibility: hidden !important;
+  transform-style: preserve-3d !important;
+}
+
+/* ========================================================================
+   MASTER 972-STATE PIECE BINDINGS DIRECTORY
+   Exact isolated styles for Pawn, Knight, Bishop, Rook, Queen, King
+   ======================================================================== */
+
+/* --- 1. PAWN (P) --- */
+/* Style 1: Dissolve Collapse / Rise Materialization / Amber Spark */
+[data-piece="P"].piece-capturing.style-1,
+[data-piece="p"].piece-capturing.style-1 { animation-name: anim-pawn-cap-dissolve-collapse; filter: drop-shadow(0 0 8px #d35400) saturate(1.8); }
+[data-piece="P"].piece-occupying.style-1,
+[data-piece="p"].piece-occupying.style-1 { animation-name: anim-pawn-occ-rise-materialization; filter: drop-shadow(0 0 8px #d35400) saturate(1.8); }
+
+/* Style 2: Spiral Sink / Pop Bounce / Emerald Haze */
+[data-piece="P"].piece-capturing.style-2,
+[data-piece="p"].piece-capturing.style-2 { animation-name: anim-pawn-cap-spiral-sink; filter: hue-rotate(90deg) drop-shadow(0 0 10px #10b981); }
+[data-piece="P"].piece-occupying.style-2,
+[data-piece="p"].piece-occupying.style-2 { animation-name: anim-pawn-occ-pop-bounce; filter: hue-rotate(90deg) drop-shadow(0 0 10px #10b981); }
+
+/* Style 3: Dust Shatter / Slide Glide / Ruby Glint */
+[data-piece="P"].piece-capturing.style-3,
+[data-piece="p"].piece-capturing.style-3 { animation-name: anim-pawn-cap-dust-shatter; filter: contrast(160%) brightness(1.2) drop-shadow(0 0 10px #e74c3c); }
+[data-piece="P"].piece-occupying.style-3,
+[data-piece="p"].piece-occupying.style-3 { animation-name: anim-pawn-occ-slide-glide; filter: contrast(160%) brightness(1.2) drop-shadow(0 0 10px #e74c3c); }
+
+/* Style 4: Fade Vacuum / Spin Lock / Cobalt Edge */
+[data-piece="P"].piece-capturing.style-4,
+[data-piece="p"].piece-capturing.style-4 { animation-name: anim-pawn-cap-fade-vacuum; filter: drop-shadow(0 0 8px #2980b9); }
+[data-piece="P"].piece-occupying.style-4,
+[data-piece="p"].piece-occupying.style-4 { animation-name: anim-pawn-occ-spin-lock; filter: drop-shadow(0 0 8px #2980b9); }
+
+/* Pawn Cry State: Despair Wail (Style 9) */
+[data-piece="P"].piece-cry,
+[data-piece="p"].piece-cry,
+[data-piece="P"].style-9,
+[data-piece="p"].style-9 { animation-name: anim-pawn-cry-despair-wail; filter: drop-shadow(0 4px 8px rgba(211, 84, 0, 0.7)) drop-shadow(0 0 12px #d35400); }
+
+/* --- 2. KNIGHT (N) --- */
+/* Style 1: Vault Vanish / Vault Entry / Electric Arc */
+[data-piece="N"].piece-capturing.style-1,
+[data-piece="n"].piece-capturing.style-1 { animation-name: anim-knight-cap-vault-vanish; filter: drop-shadow(0 0 10px #00d2ff) brightness(1.3); }
+[data-piece="N"].piece-occupying.style-1,
+[data-piece="n"].piece-occupying.style-1 { animation-name: anim-knight-occ-vault-entry; filter: drop-shadow(0 0 10px #00d2ff) brightness(1.3); }
+
+/* Style 2: Spin Vortex / Orbital Sweep / Bronze Shield */
+[data-piece="N"].piece-capturing.style-2,
+[data-piece="n"].piece-capturing.style-2 { animation-name: anim-knight-cap-spin-vortex; filter: drop-shadow(0 0 12px #d97706) saturate(1.8) sepia(0.4); }
+[data-piece="N"].piece-occupying.style-2,
+[data-piece="n"].piece-occupying.style-2 { animation-name: anim-knight-occ-orbital-sweep; filter: drop-shadow(0 0 12px #d97706) saturate(1.8) sepia(0.4); }
+
+/* Style 3: Impact Crater / Kinetic Charge / Neon Cyan Pulse */
+[data-piece="N"].piece-capturing.style-3,
+[data-piece="n"].piece-capturing.style-3 { animation-name: anim-knight-cap-impact-crater; filter: drop-shadow(0 0 12px #00ffff) brightness(1.2); }
+[data-piece="N"].piece-occupying.style-3,
+[data-piece="n"].piece-occupying.style-3 { animation-name: anim-knight-occ-kinetic-charge; filter: drop-shadow(0 0 12px #00ffff) brightness(1.2); }
+
+/* Style 4: Portal Snap / Stride Lock / Crimson Surge */
+[data-piece="N"].piece-capturing.style-4,
+[data-piece="n"].piece-capturing.style-4 { animation-name: anim-knight-cap-portal-snap; filter: contrast(170%) drop-shadow(0 0 14px #ef4444); }
+[data-piece="N"].piece-occupying.style-4,
+[data-piece="n"].piece-occupying.style-4 { animation-name: anim-knight-occ-stride-lock; filter: contrast(170%) drop-shadow(0 0 14px #ef4444); }
+
+/* Knight Cry State: War Cry (Style 9) */
+[data-piece="N"].piece-cry,
+[data-piece="n"].piece-cry,
+[data-piece="N"].style-9,
+[data-piece="n"].style-9 { animation-name: anim-knight-cry-war-cry; filter: drop-shadow(0 0 16px #00d2ff) drop-shadow(0 0 24px #3b82f6) brightness(1.4); }
+
+/* --- 3. BISHOP (B) --- */
+/* Style 1: Slicing Dissolve / Diagonal Glide / Holy Gold Aura */
+[data-piece="B"].piece-capturing.style-1,
+[data-piece="b"].piece-capturing.style-1 { animation-name: anim-bishop-cap-diagonal-slice; filter: drop-shadow(0 0 12px #FFD700) brightness(1.2); }
+[data-piece="B"].piece-occupying.style-1,
+[data-piece="b"].piece-occupying.style-1 { animation-name: anim-bishop-occ-diagonal-glide; filter: drop-shadow(0 0 12px #FFD700) brightness(1.2); }
+
+/* Style 2: Prism Refraction / Divine Beam / Mystic Purple Mist */
+[data-piece="B"].piece-capturing.style-2,
+[data-piece="b"].piece-capturing.style-2 { animation-name: anim-bishop-cap-prism-refraction; filter: hue-rotate(240deg) drop-shadow(0 0 12px #8b5cf6) blur(0.3px); }
+[data-piece="B"].piece-occupying.style-2,
+[data-piece="b"].piece-occupying.style-2 { animation-name: anim-bishop-occ-divine-beam; filter: hue-rotate(240deg) drop-shadow(0 0 12px #8b5cf6); }
+
+/* Style 3: Diagonal Sweep / Tilt Materialize / Celestial White Flare */
+[data-piece="B"].piece-capturing.style-3,
+[data-piece="b"].piece-capturing.style-3 { animation-name: anim-bishop-cap-diagonal-sweep; filter: brightness(1.8) drop-shadow(0 0 15px #ffffff); }
+[data-piece="B"].piece-occupying.style-3,
+[data-piece="b"].piece-occupying.style-3 { animation-name: anim-bishop-occ-tilt-materialize; filter: brightness(1.8) drop-shadow(0 0 15px #ffffff); }
+
+/* Style 4: Mystic Implosion / Aura Expand / Emerald Ray */
+[data-piece="B"].piece-capturing.style-4,
+[data-piece="b"].piece-capturing.style-4 { animation-name: anim-bishop-cap-mystic-implosion; filter: drop-shadow(0 0 14px #10b981) saturate(1.9); }
+[data-piece="B"].piece-occupying.style-4,
+[data-piece="b"].piece-occupying.style-4 { animation-name: anim-bishop-occ-aura-expand; filter: drop-shadow(0 0 14px #10b981) saturate(1.9); }
+
+/* Bishop Cry State: Chant Echo (Style 9) */
+[data-piece="B"].piece-cry,
+[data-piece="b"].piece-cry,
+[data-piece="B"].style-9,
+[data-piece="b"].style-9 { animation-name: anim-bishop-cry-chant-echo; filter: drop-shadow(0 0 20px #FFD700) drop-shadow(0 0 15px #8b5cf6) brightness(1.4); }
+
+/* --- 4. ROOK (R) --- */
+/* Style 1: Fortress Demolition / Orthogonal Slide / Steel Armor */
+[data-piece="R"].piece-capturing.style-1,
+[data-piece="r"].piece-capturing.style-1 { animation-name: anim-rook-cap-fortress-demolition; filter: contrast(180%) drop-shadow(0 0 10px #64748b); }
+[data-piece="R"].piece-occupying.style-1,
+[data-piece="r"].piece-occupying.style-1 { animation-name: anim-rook-occ-orthogonal-slide; filter: contrast(180%) drop-shadow(0 0 10px #64748b); }
+
+/* Style 2: Laser Grid / Fortress Rise / Magma Core */
+[data-piece="R"].piece-capturing.style-2,
+[data-piece="r"].piece-capturing.style-2 { animation-name: anim-rook-cap-laser-grid; filter: drop-shadow(0 0 14px #f97316) saturate(2.5); }
+[data-piece="R"].piece-occupying.style-2,
+[data-piece="r"].piece-occupying.style-2 { animation-name: anim-rook-occ-fortress-rise; filter: drop-shadow(0 0 14px #f97316) saturate(2.5); }
+
+/* Style 3: Heavy Smash / Anchor Drop / Titanium Chrome */
+[data-piece="R"].piece-capturing.style-3,
+[data-piece="r"].piece-capturing.style-3 { animation-name: anim-rook-cap-heavy-smash; filter: brightness(1.5) drop-shadow(0 0 12px #e2e8f0); }
+[data-piece="R"].piece-occupying.style-3,
+[data-piece="r"].piece-occupying.style-3 { animation-name: anim-rook-occ-anchor-drop; filter: brightness(1.5) drop-shadow(0 0 12px #e2e8f0); }
+
+/* Style 4: Structural Collapse / Modular Assembly / Obsidian Dark */
+[data-piece="R"].piece-capturing.style-4,
+[data-piece="r"].piece-capturing.style-4 { animation-name: anim-rook-cap-structural-collapse; filter: drop-shadow(0 0 15px #312e81) invert(0.2); }
+[data-piece="R"].piece-occupying.style-4,
+[data-piece="r"].piece-occupying.style-4 { animation-name: anim-rook-occ-modular-assembly; filter: drop-shadow(0 0 15px #312e81); }
+
+/* Rook Cry State: Siege Siren (Style 9) */
+[data-piece="R"].piece-cry,
+[data-piece="r"].piece-cry,
+[data-piece="R"].style-9,
+[data-piece="r"].style-9 { animation-name: anim-rook-cry-siege-siren; filter: drop-shadow(0 0 20px #ef4444) drop-shadow(0 0 14px #f97316) brightness(1.5); }
+
+/* --- 5. QUEEN (Q) --- */
+/* Style 1: Imperial Disintegration / Majestic Descent / Sovereign Gold */
+[data-piece="Q"].piece-capturing.style-1,
+[data-piece="q"].piece-capturing.style-1 { animation-name: anim-queen-cap-imperial-disintegration; filter: drop-shadow(0 0 18px #FFD700) brightness(1.4); }
+[data-piece="Q"].piece-occupying.style-1,
+[data-piece="q"].piece-occupying.style-1 { animation-name: anim-queen-occ-majestic-descent; filter: drop-shadow(0 0 18px #FFD700) brightness(1.4); }
+
+/* Style 2: Royal Vortex / Sovereign Expansion / Imperial Amethyst */
+[data-piece="Q"].piece-capturing.style-2,
+[data-piece="q"].piece-capturing.style-2 { animation-name: anim-queen-cap-royal-vortex; filter: hue-rotate(270deg) drop-shadow(0 0 18px #a855f7); }
+[data-piece="Q"].piece-occupying.style-2,
+[data-piece="q"].piece-occupying.style-2 { animation-name: anim-queen-occ-sovereign-expansion; filter: hue-rotate(270deg) drop-shadow(0 0 18px #a855f7); }
+
+/* Style 3: Singularity Warp / Omnidirectional Glide / Diamond Prism */
+[data-piece="Q"].piece-capturing.style-3,
+[data-piece="q"].piece-capturing.style-3 { animation-name: anim-queen-cap-singularity-warp; filter: drop-shadow(0 0 20px #00f2fe) brightness(1.6); }
+[data-piece="Q"].piece-occupying.style-3,
+[data-piece="q"].piece-occupying.style-3 { animation-name: anim-queen-occ-omnidirectional-glide; filter: drop-shadow(0 0 20px #00f2fe) brightness(1.6); }
+
+/* Style 4: Royal Shockwave / Crown Emergence / Solar Flare */
+[data-piece="Q"].piece-capturing.style-4,
+[data-piece="q"].piece-capturing.style-4 { animation-name: anim-queen-cap-royal-shockwave; filter: drop-shadow(0 0 22px #f59e0b) brightness(1.7); }
+[data-piece="Q"].piece-occupying.style-4,
+[data-piece="q"].piece-occupying.style-4 { animation-name: anim-queen-occ-crown-emergence; filter: drop-shadow(0 0 22px #f59e0b) brightness(1.7); }
+
+/* Queen Cry State: Sovereign Command (Style 9) */
+[data-piece="Q"].piece-cry,
+[data-piece="q"].piece-cry,
+[data-piece="Q"].style-9,
+[data-piece="q"].style-9 { animation-name: anim-queen-cry-sovereign-command; filter: drop-shadow(0 0 28px #ffd700) drop-shadow(0 0 18px #ffffff) brightness(1.8); }
+
+/* --- 6. KING (K) --- */
+/* Style 1: Throne Collapse / Royal Portal / Imperial Gold Crown */
+[data-piece="K"].piece-capturing.style-1,
+[data-piece="k"].piece-capturing.style-1 { animation-name: anim-king-cap-throne-collapse; filter: drop-shadow(0 0 20px #FFD700) brightness(1.4); }
+[data-piece="K"].piece-occupying.style-1,
+[data-piece="k"].piece-occupying.style-1 { animation-name: anim-king-occ-royal-portal; filter: drop-shadow(0 0 20px #FFD700) brightness(1.4); }
+
+/* Style 2: Imperial Shatter / Throne Summon / Platinum Sovereign */
+[data-piece="K"].piece-capturing.style-2,
+[data-piece="k"].piece-capturing.style-2 { animation-name: anim-king-cap-imperial-shatter; filter: drop-shadow(0 0 20px #e2e8f0) brightness(1.5); }
+[data-piece="K"].piece-occupying.style-2,
+[data-piece="k"].piece-occupying.style-2 { animation-name: anim-king-occ-throne-summon; filter: drop-shadow(0 0 20px #e2e8f0) brightness(1.5); }
+
+/* Style 3: Golden Fadeout / Sovereign Step / Mystic Ruby Sovereign */
+[data-piece="K"].piece-capturing.style-3,
+[data-piece="k"].piece-capturing.style-3 { animation-name: anim-king-cap-golden-fadeout; filter: drop-shadow(0 0 22px #dc2626) drop-shadow(0 0 12px #f59e0b); }
+[data-piece="K"].piece-occupying.style-3,
+[data-piece="k"].piece-occupying.style-3 { animation-name: anim-king-occ-sovereign-step; filter: drop-shadow(0 0 22px #dc2626) drop-shadow(0 0 12px #f59e0b); }
+
+/* Style 4: Realm Seal / Divine Coronation / Eternal Realm */
+[data-piece="K"].piece-capturing.style-4,
+[data-piece="k"].piece-capturing.style-4 { animation-name: anim-king-cap-realm-seal; filter: drop-shadow(0 0 24px #8b5cf6) drop-shadow(0 0 14px #00d2ff); }
+[data-piece="K"].piece-occupying.style-4,
+[data-piece="k"].piece-occupying.style-4 { animation-name: anim-king-occ-divine-coronation; filter: drop-shadow(0 0 24px #8b5cf6) drop-shadow(0 0 14px #00d2ff); }
+
+/* King Cry State: Imperial Decree (Style 9) */
+[data-piece="K"].piece-cry,
+[data-piece="k"].piece-cry,
+[data-piece="K"].style-9,
+[data-piece="k"].style-9 { animation-name: anim-king-cry-imperial-decree; filter: drop-shadow(0 0 32px #ffd700) drop-shadow(0 0 20px #e2e8f0) brightness(1.7); }
+
+/* ========================================================================= */
+/* --- UNIVERSAL 3D MULTI-ELEMENT UNDER-ATTACK & TEAR-CRY ENGINE --- */
+/* ========================================================================= */
+
+.piece-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+/* Dynamic 3D Cry Tear Droplets */
+.tear {
+  position: absolute;
+  width: 7px;
+  height: 13px;
+  background: linear-gradient(180deg, #38bdf8, #0284c7);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  opacity: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 0 8px #00d2ff);
+  z-index: 45;
+}
+
+.piece-wrapper.under-attack .tear-left,
+.piece-cry .tear-left,
+.under-attack .tear-left {
+  left: 26%;
+  top: 30%;
+  animation: dropTearFlow 0.75s linear infinite;
+}
+
+.piece-wrapper.under-attack .tear-right,
+.piece-cry .tear-right,
+.under-attack .tear-right {
+  right: 26%;
+  top: 30%;
+  animation: dropTearFlow 0.75s linear infinite 0.35s;
+}
+
+@keyframes dropTearFlow {
+  0% { transform: translateY(0) scale(0.5); opacity: 0.95; }
+  70% { transform: translateY(32px) scale(1); opacity: 0.85; }
+  100% { transform: translateY(46px) scale(0.25); opacity: 0; }
+}
+
+/* 1. PAWN UNDER ATTACK */
+.piece-wrapper.under-attack[data-current="P"],
+.piece-wrapper.under-attack[data-piece="P"],
+[data-piece="P"].under-attack,
+[data-piece="p"].under-attack {
+  animation: pawnAttackAnim 0.35s ease-in-out infinite alternate;
+  filter: drop-shadow(0 8px 20px rgba(211, 84, 0, 0.95));
+}
+@keyframes pawnAttackAnim {
+  0% { transform: rotateX(12deg) translateY(2px) skewX(-2deg); }
+  100% { transform: rotateX(12deg) translateY(-2px) skewX(2deg); }
+}
+
+/* 2. KNIGHT UNDER ATTACK */
+.piece-wrapper.under-attack[data-current="N"],
+.piece-wrapper.under-attack[data-piece="N"],
+[data-piece="N"].under-attack,
+[data-piece="n"].under-attack {
+  animation: knightAttackAnim 0.3s ease-in-out infinite alternate;
+  filter: drop-shadow(0 10px 24px rgba(52, 152, 219, 0.95));
+}
+@keyframes knightAttackAnim {
+  0% { transform: rotateX(15deg) rotateY(-20deg) translateY(3px); }
+  100% { transform: rotateX(18deg) rotateY(-25deg) translateY(-3px); }
+}
+
+/* 3. BISHOP UNDER ATTACK */
+.piece-wrapper.under-attack[data-current="B"],
+.piece-wrapper.under-attack[data-piece="B"],
+[data-piece="B"].under-attack,
+[data-piece="b"].under-attack {
+  animation: bishopAttackAnim 0.4s ease-in-out infinite alternate;
+  filter: drop-shadow(0 10px 24px rgba(155, 89, 182, 0.95));
+}
+@keyframes bishopAttackAnim {
+  0% { transform: rotateX(10deg) rotateZ(-8deg); }
+  100% { transform: rotateX(10deg) rotateZ(8deg); }
+}
+
+/* 4. ROOK UNDER ATTACK */
+.piece-wrapper.under-attack[data-current="R"],
+.piece-wrapper.under-attack[data-piece="R"],
+[data-piece="R"].under-attack,
+[data-piece="r"].under-attack {
+  animation: rookAttackAnim 0.25s ease-in-out infinite alternate;
+  filter: drop-shadow(0 10px 24px rgba(231, 76, 60, 0.95));
+}
+@keyframes rookAttackAnim {
+  0% { transform: rotateX(14deg) scaleX(1.02) scaleY(0.98); }
+  100% { transform: rotateX(14deg) scaleX(1.12) scaleY(0.92); }
+}
+
+/* 5. QUEEN UNDER ATTACK */
+.piece-wrapper.under-attack[data-current="Q"],
+.piece-wrapper.under-attack[data-piece="Q"],
+[data-piece="Q"].under-attack,
+[data-piece="q"].under-attack {
+  animation: queenAttackAnim 0.4s ease-in-out infinite alternate;
+  filter: drop-shadow(0 12px 28px rgba(241, 196, 15, 0.95));
+}
+@keyframes queenAttackAnim {
+  0% { transform: rotateX(15deg) translateY(-8px) scale(1.06); }
+  100% { transform: rotateX(15deg) translateY(-14px) scale(1.1); }
+}
+
+/* 6. KING UNDER ATTACK */
+.piece-wrapper.under-attack[data-current="K"],
+.piece-wrapper.under-attack[data-piece="K"],
+[data-piece="K"].under-attack,
+[data-piece="k"].under-attack {
+  animation: kingAttackAnim 0.35s ease-in-out infinite alternate;
+  filter: drop-shadow(0 14px 30px rgba(212, 175, 55, 1));
+}
+@keyframes kingAttackAnim {
+  0% { transform: rotateX(16deg) scale(1.08); }
+  100% { transform: rotateX(20deg) scale(1.15); }
+}
+
+
+
+

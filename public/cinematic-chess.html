@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cinematic Chess Particle & Animation Engine</title>
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --board-light: #334155;
+      --board-dark: #1e293b;
+      --neon-cyan: #00f2fe;
+      --neon-gold: #ffd700;
+      --neon-rose: #ff0844;
+      --neon-emerald: #38ef7d;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background: radial-gradient(circle at center, #1a1c2e 0%, var(--bg-color) 100%);
+      color: #fff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .header h1 {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, #00f2fe, #fff, #ffd700);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .header p {
+      font-size: 13px;
+      color: #94a3b8;
+    }
+    .main-stage {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .banner-container {
+      height: 48px;
+      width: min(90vw, 480px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .eval-banner {
+      width: 100%;
+      padding: 10px 16px;
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(0, 242, 254, 0.4);
+      box-shadow: 0 0 25px rgba(0, 242, 254, 0.25);
+      backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      animation: bannerSlideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .eval-banner.gold {
+      border-color: rgba(255, 215, 0, 0.5);
+      box-shadow: 0 0 30px rgba(255, 215, 0, 0.35);
+    }
+    .eval-banner.rose {
+      border-color: rgba(255, 8, 68, 0.5);
+      box-shadow: 0 0 30px rgba(255, 8, 68, 0.35);
+    }
+    .board-container {
+      position: relative;
+      width: min(90vw, 480px);
+      height: min(90vw, 480px);
+      border-radius: 18px;
+      padding: 10px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 2px solid rgba(0, 242, 254, 0.35);
+      box-shadow: 0 0 45px rgba(0, 242, 254, 0.25), inset 0 0 20px rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(16px);
+      user-select: none;
+      transition: transform 0.1s ease;
+    }
+    .board-container.shake {
+      animation: boardJolt 0.38s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+    .chess-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      width: 100%;
+      height: 100%;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #334155;
+    }
+    .tile {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      transition: background-color 0.15s ease;
+    }
+    .tile.light { background: var(--board-light); }
+    .tile.light:hover { background: #475569; }
+    .tile.dark { background: var(--board-dark); }
+    .tile.dark:hover { background: #334155; }
+    .tile.selected {
+      box-shadow: inset 0 0 0 3px var(--neon-cyan);
+      background: rgba(0, 242, 254, 0.2) !important;
+    }
+    .piece-svg {
+      width: 82%;
+      height: 82%;
+      pointer-events: none;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+      transition: transform 0.15s ease;
+    }
+    .tile:hover .piece-svg {
+      transform: scale(1.06);
+    }
+    canvas#fx-canvas {
+      position: absolute;
+      inset: 10px;
+      pointer-events: none;
+      z-index: 20;
+    }
+    .moving-overlay-piece {
+      position: absolute;
+      width: 52px;
+      height: 52px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 30;
+    }
+    .dying-overlay-piece {
+      position: absolute;
+      width: 52px;
+      height: 52px;
+      transform: translate(-50%, -50%) scale(0) rotate(45deg);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 10;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .shockwave {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid var(--neon-cyan);
+      box-shadow: 0 0 25px var(--neon-cyan);
+      animation: shockwaveExpand 0.65s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+      pointer-events: none;
+      z-index: 15;
+      transform: translate(-50%, -50%);
+    }
+    .floating-badge {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-weight: 900;
+      font-size: 13px;
+      z-index: 30;
+      animation: badgeFloat 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 0 20px rgba(0, 242, 254, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+    .crown-drop {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      font-size: 40px;
+      z-index: 40;
+      pointer-events: none;
+      filter: drop-shadow(0 0 20px #ffd700);
+      animation: crownDropAnim 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    .controls-panel {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      width: min(90vw, 560px);
+      margin-top: 10px;
+    }
+    .btn {
+      padding: 8px 14px;
+      border-radius: 10px;
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: #e2e8f0;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn:hover {
+      background: #334155;
+      border-color: var(--neon-cyan);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 242, 254, 0.25);
+    }
+    .btn-gold {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: rgba(245, 158, 11, 0.5);
+      color: #fde047;
+    }
+    .btn-gold:hover {
+      border-color: #ffd700;
+      box-shadow: 0 4px 12px rgba(255, 215, 0, 0.35);
+    }
+
+    @keyframes boardJolt {
+      0% { transform: translate(0, 0); }
+      20% { transform: translate(-6px, 4px) rotate(-1deg); }
+      40% { transform: translate(6px, -4px) rotate(1deg); }
+      60% { transform: translate(-3px, 2px); }
+      80% { transform: translate(3px, -1px); }
+      100% { transform: translate(0, 0); }
+    }
+    @keyframes shockwaveExpand {
+      0% { width: 8px; height: 8px; opacity: 1; transform: translate(-50%, -50%) scale(0.4); }
+      100% { width: 170px; height: 170px; opacity: 0; transform: translate(-50%, -50%) scale(2.2); }
+    }
+    @keyframes badgeFloat {
+      0% { opacity: 0; transform: translate(-50%, 0) scale(0.4); }
+      25% { opacity: 1; transform: translate(-50%, -30px) scale(1.15); }
+      80% { opacity: 1; transform: translate(-50%, -45px) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -65px) scale(0.85); }
+    }
+    @keyframes crownDropAnim {
+      0% { opacity: 0; transform: translate(-50%, -80px) scale(0.4); }
+      100% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+    }
+    @keyframes bannerSlideIn {
+      0% { opacity: 0; transform: translateY(-20px) scale(0.95); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Cinematic Chess Animation Engine</h1>
+    <p>Dynamic Move Trajectories, Piece Physics, Particle Sparks &amp; Evaluation Badges</p>
+  </div>
+
+  <div class="main-stage">
+    <div class="banner-container" id="banner-container"></div>
+    <div class="board-container" id="board">
+      <canvas id="fx-canvas"></canvas>
+      <div class="chess-grid" id="grid"></div>
+    </div>
+  </div>
+
+  <div class="controls-panel">
+    <button class="btn btn-gold" onclick="runPreset('king_checkmate')">👑 King Checkmate (#)</button>
+    <button class="btn" onclick="runPreset('knight_jump')">♞ Knight 3D L-Jump</button>
+    <button class="btn" onclick="runPreset('queen_sacrifice')">♛ Queen's Ghost Trail (!!)</button>
+    <button class="btn" onclick="runPreset('rook_smash')">♜ Rook Linear Smash</button>
+    <button class="btn" onclick="runPreset('bishop_slice')">♝ Bishop Diagonal Slice</button>
+    <button class="btn" onclick="runPreset('pawn_lunge')">♟ Pawn Sharp Lunge</button>
+    <button class="btn" onclick="runPreset('blunder')">💥 Blunder (??)</button>
+    <button class="btn" onclick="resetBoard()">🔄 Reset Board</button>
+  </div>
+
+  <script>
+    const PIECE_SVGS = {
+      w_king: '<svg viewBox="0 0 45 45" class="piece-svg"><g fill="#ffffff" stroke="#272522" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M 9 39.5 C 9 36.5 13 34.8 22.5 34.8 C 32 34.8 36 36.5 36 39.5 Z" fill="#ffffff"/><path d="M 11.5 37 C 15.5 36 29.5 36 33.5 37" stroke="#272522" stroke-width="1.5" fill="none"/><path d="M 13.5 34.8 C 13.5 30 16 26.5 17 24 L 28 24 C 29 26.5 31.5 30 31.5 34.8 Z" fill="#ffffff"/><path d="M 15 24 C 15 22.8 18 21.8 22.5 21.8 C 27 21.8 30 22.8 30 24 C 30 25.2 27 26.2 22.5 26.2 C 18 26.2 15 25.2 15 24 Z" fill="#ffffff"/><path d="M 14 22 C 12 18 15 13 22.5 13 C 30 13 33 18 31 22 Z" fill="#ffffff"/><path d="M 22.5 13 L 22.5 22" stroke="#272522" stroke-width="1.5"/><path d="M 22.5 5.5 L 22.5 13 M 19 8.5 L 26 8.5" stroke="#272522" stroke-width="2.2" stroke-linecap="square"/></g></svg>',
+      b_king: '<svg viewBox="0 0 45 45" class="piece-svg"><g fill="#454341" stroke="#1c1a18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M 9 39.5 C 9 36.5 13 34.8 22.5 34.8 C 32 34.8 36 36.5 36 39.5 Z" fill="#454341"/><path d="M 11.5 37 C 15.5 36 29.5 36 33.5 37" stroke="#ffffff" stroke-width="1" stroke-opacity="0.4" fill="none"/><path d="M 13.5 34.8 C 13.5 30 16 26.5 17 24 L 28 24 C 29 26.5 31.5 30 31.5 34.8 Z" fill="#454341"/><path d="M 15 24 C 15 22.8 18 21.8 22.5 21.8 C 27 21.8 30 22.8 30 24 C 30 25.2 27 26.2 22.5 26.2 C 18 26.2 15 25.2 15 24 Z" fill="#454341"/><path d="M 14 22 C 12 18 15 13 22.5 13 C 30 13 33 18 31 22 Z" fill="#454341"/><path d="M 22.5 13 L 22.5 22" stroke="#1c1a18" stroke-width="1.5"/><path d="M 22.5 5.5 L 22.5 13 M 19 8.5 L 26 8.5" stroke="#ffffff" stroke-width="2.2" stroke-linecap="square"/></g></svg>',
+      w_queen: '<svg viewBox="0 0 45 45" class="piece-svg"><g fill="#ffffff" stroke="#272522" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M 9 39.5 C 9 36.5 13 34.8 22.5 34.8 C 32 34.8 36 36.5 36 39.5 Z" fill="#ffffff"/><path d="M 11.5 37 C 15.5 36 29.5 36 33.5 37" stroke="#272522" stroke-width="1.5" fill="none"/><path d="M 13.5 34.8 C 13.5 30 16 26.5 17 24 L 28 24 C 29 26.5 31.5 30 31.5 34.8 Z" fill="#ffffff"/><path d="M 15.5 24 C 15.5 22.8 18 21.8 22.5 21.8 C 27 21.8 29.5 22.8 29.5 24 C 29.5 25.2 27 26.2 22.5 26.2 C 18 26.2 15.5 25.2 15.5 24 Z" fill="#ffffff"/><path d="M 12 22.5 L 7.5 13.5 L 14.5 19 L 14.5 10 L 20 18 L 22.5 8.5 L 25 18 L 30.5 10 L 30.5 19 L 37.5 13.5 L 33 22.5 Z" fill="#ffffff"/><circle cx="7.5" cy="13.5" r="1.8" fill="#ffffff"/><circle cx="14.5" cy="10" r="1.8" fill="#ffffff"/><circle cx="22.5" cy="8.5" r="2" fill="#ffffff"/><circle cx="30.5" cy="10" r="1.8" fill="#ffffff"/><circle cx="37.5" cy="13.5" r="1.8" fill="#ffffff"/></g></svg>',
+      b_queen: '<svg viewBox="0 0 45 45" class="piece-svg"><g fill="#454341" stroke="#1c1a18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M 9 39.5 C 9 36.5 13 34.8 22.5 34.8 C 32 34.8 36 36.5 36 39.5 Z" fill="#454341"/><path d="M 11.5 37 C 15.5 36 29.5 36 33.5 37" stroke="#ffffff" stroke-width="1" stroke-opacity="0.4" fill="none"/><path d="M 13.5 34.8 C 13.5 30 16 26.5 17 24 L 28 24 C 29 26.5 31.5 30 31.5 34.8 Z" fill="#454341"/><path d="M 15.5 24 C 15.5 22.8 18 21.8 22.5 21.8 C 27 21.8 29.5 22.8 29.5 24 C 29.5 25.2 27 26.2 22.5 26.2 C 18 26.2 15.5 25.2 15.5 24 Z" fill="#454341"/><path d="M 12 22.5 L 7.5 13.5 L 14.5 19 L 14.5 10 L 20 18 L 22.5 8.5 L 25 18 L 30.5 10 L 30.5 19 L 37.5 13.5 L 33 22.5 Z" fill="#454341"/><circle cx="7.5" cy="13.5" r="1.8" fill="#454341" stroke="#1c1a18" stroke-width="1.5"/><circle cx="14.5" cy="10" r="1.8" fill="#454341" stroke="#1c1a18" stroke-width="1.5"/><circle cx="22.5" cy="8.5" r="2" fill="#454341" stroke="#1c1a18" stroke-width="1.5"/><circle cx="30.5" cy="10" r="1.8" fill="#454341" stroke="#1c1a18" stroke-width="1.5"/><circle cx="37.5" cy="13.5" r="1.8" fill="#454341" stroke="#1c1a18" stroke-width="1.5"/><circle cx="22.5" cy="8.5" r="0.8" fill="#ffffff" stroke="none"/></g></svg>',
+      w_rook: '<svg viewBox="0 0 45 45" class="piece-svg"><g fill="#ffffff" stroke="#272522" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M 9.5 39.5 L 35.5 39.5 L 35.5 36 C 33.5 34.5 31.5 34 22.5 34 C 13.5 34 11.5 34.5 9.5 36 Z" fill="#ffffff"/><path d="M 11.5 36.5 L 33.5 36.5" stroke="#272522" stroke-width="1.5" fill="none"/><path d="M 13.5 34 L 14.5 16.5 L 30.5 16.5 L 31.5 34 Z" fill="#ffffff"/><path d="M 11 16.5 L 34 16.5 L 34 14 L 11 14 Z" fill="#ffffff"/><path d="M 11 14 L 11 8.5 L 15.5 8.5 L 15.5 11.5 L 20 11.5 L 20 8.5 L 25 8.5 L 25 11.5 L 29.5 11.5 L 29.5 8.5 L 34 8.5 L 34 14 Z" fill="#ffffff"/></g></svg>',
+      b_rook: '<svg viewBox="0 0 45 45" class="piece-svg"><g fill="#454341" stroke="#1c1a18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M 9.5 39.5 L 35.5 39.5 L 35.5 36 C 33.5 34.5 31.5 34 22.5 34 C 13.5 34 11.5 34.5 9.5 36 Z" fill="#454341"/><path d="M 11.5 36.5 L 33.5 36.5" stroke="#ffffff" stroke-width="1" stroke-opacity="0.4" fill="none"/><path d="M 13.5 34 L 14.5 16.5 L 30.5 16.5 L 31.5 34 Z" fill="#454341"/><path d="M 11 16.5 L 34 16.5 L 34 14 L 11 14 Z" fill="#454341"/><path d="M 11 14 L 11 8.5 L 15.5 8.5 L 15.5 11.5 L 20 11.5 L 20 8.5 L 25 8.5 L 25 11.5 L 29.5 11.5 L 29.5 8.5 L 34 8.5 L 34 14 Z" fill="#454341"/></g></svg>',
+      w_bishop: '<svg viewBox="0 0 45 45" class="piece-svg"><g fill="#ffffff" stroke="#272522" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M 10 39.5 C 10 36.8 13.5 35 22.5 35 C 31.5 35 35 36.8 35 39.5 Z" fill="#ffffff"/><path d="M 12.5 37 C 16 36 29 36 32.5 37" stroke="#272522" stroke-width="1.5" fill="none"/><path d="M 14 35 C 14 31 16.5 28 17.5 24.5 L 27.5 24.5 C 28.5 28 31 31 31 35 Z" fill="#ffffff"/><path d="M 16 24.5 C 16 23.2 18.5 22.2 22.5 22.2 C 26.5 22.2 29 23.2 29 24.5 C 29 25.8 26.5 26.8 22.5 26.8 C 18.5 26.8 16 25.8 16 24.5 Z" fill="#ffffff"/><path d="M 15 23 C 14 18 17 12 22.5 9.5 C 28 12 31 18 30 23 C 28 24.5 17 24.5 15 23 Z" fill="#ffffff"/><path d="M 21.5 13 L 26.5 18" stroke="#272522" stroke-width="1.8" stroke-linecap="round"/><circle cx="22.5" cy="7.5" r="2.2" fill="#ffffff"/></g></svg>',
+      b_bishop: '<svg viewBox="0 0 45 45" class="piece-svg"><g fill="#454341" stroke="#1c1a18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M 10 39.5 C 10 36.8 13.5 35 22.5 35 C 31.5 35 35 36.8 35 39.5 Z" fill="#454341"/><path d="M 12.5 37 C 16 36 29 36 32.5 37" stroke="#ffffff" stroke-width="1" stroke-opacity="0.4" fill="none"/><path d="M 14 35 C 14 31 16.5 28 17.5 24.5 L 27.5 24.5 C 28.5 28 31 31 31 35 Z" fill="#454341"/><path d="M 16 24.5 C 16 23.2 18.5 22.2 22.5 22.2 C 26.5 22.2 29 23.2 29 24.5 C 29 25.8 26.5 26.8 22.5 26.8 C 18.5 26.8 16 25.8 16 24.5 Z" fill="#454341"/><path d="M 15 23 C 14 18 17 12 22.5 9.5 C 28 12 31 18 30 23 C 28 24.5 17 24.5 15 23 Z" fill="#454341"/><path d="M 21.5 13 L 26.5 18" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.9"/><circle cx="22.5" cy="7.5" r="2.2" fill="#454341"/></g></svg>',
+      w_knight: '<svg viewBox="0 0 45 45" class="piece-svg"><g fill="#ffffff" stroke="#272522" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M 10 39.5 C 10 37 13 35.5 22.5 35.5 C 32 35.5 35 37 35 39.5 Z" fill="#ffffff"/><path d="M 13.5 35.5 C 13.5 31.5 14 27.5 17 24.5 C 16.2 24.8 14.5 25.2 13 25 C 10.5 24.6 9 22.8 9.5 20.5 C 10 18.2 12.2 16.5 14.5 14.5 C 15.8 13.2 17 11.2 17.5 8.5 C 18 8 19 8.2 19.5 9.5 C 20 10.5 20.5 11.5 22.5 11 C 24 10.5 24.5 8.5 25.5 8.5 C 26.2 8.5 26.8 9.5 27 10.8 C 28.5 10.5 29.5 9.5 30.5 9.5 C 31.5 9.5 32 10.8 32 12.5 C 32.5 15.5 33.5 18 35.5 22 C 37 25 36.5 30 35 35.5 Z" fill="#ffffff"/><path d="M 10 20.5 C 11.5 22 14 22 17 20" stroke="#272522" stroke-width="1.6" fill="none"/><path d="M 19 16 C 18 19.5 16 22 14.5 23" stroke="#272522" stroke-width="1.5" fill="none"/><circle cx="15.5" cy="14.5" r="1.5" fill="#272522" stroke="none"/><path d="M 23.5 14.5 C 25.5 17 27 20 27 24.5" stroke="#272522" stroke-width="1.5" fill="none"/></g></svg>',
+      b_knight: '<svg viewBox="0 0 45 45" class="piece-svg"><g fill="#454341" stroke="#1c1a18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M 10 39.5 C 10 37 13 35.5 22.5 35.5 C 32 35.5 35 37 35 39.5 Z" fill="#454341"/><path d="M 13.5 35.5 C 13.5 31.5 14 27.5 17 24.5 C 16.2 24.8 14.5 25.2 13 25 C 10.5 24.6 9 22.8 9.5 20.5 C 10 18.2 12.2 16.5 14.5 14.5 C 15.8 13.2 17 11.2 17.5 8.5 C 18 8 19 8.2 19.5 9.5 C 20 10.5 20.5 11.5 22.5 11 C 24 10.5 24.5 8.5 25.5 8.5 C 26.2 8.5 26.8 9.5 27 10.8 C 28.5 10.5 29.5 9.5 30.5 9.5 C 31.5 9.5 32 10.8 32 12.5 C 32.5 15.5 33.5 18 35.5 22 C 37 25 36.5 30 35 35.5 Z" fill="#454341"/><path d="M 10 20.5 C 11.5 22 14 22 17 20" stroke="#1c1a18" stroke-width="1.6" fill="none"/><path d="M 19 16 C 18 19.5 16 22 14.5 23" stroke="#ffffff" stroke-width="1.2" stroke-opacity="0.45" fill="none"/><circle cx="15.5" cy="14.5" r="1.5" fill="#ffffff" stroke="none"/><path d="M 23.5 14.5 C 25.5 17 27 20 27 24.5" stroke="#ffffff" stroke-width="1.2" stroke-opacity="0.45" fill="none"/></g></svg>',
+      w_pawn: '<svg viewBox="0 0 45 45" class="piece-svg"><g fill="#ffffff" stroke="#272522" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M 10 39.5 C 10 36.5 13.5 34.5 22.5 34.5 C 31.5 34.5 35 36.5 35 39.5 Z" fill="#ffffff"/><path d="M 12 36.5 C 15.5 35.5 29.5 35.5 33 36.5" stroke="#272522" stroke-width="1.6" fill="none"/><path d="M 16.8 22 C 16.8 27 14 31.5 13 34.5 L 32 34.5 C 31 31.5 28.2 27 28.2 22 Z" fill="#ffffff"/><path d="M 16 22 C 16 20.8 18.5 19.8 22.5 19.8 C 26.5 19.8 29 20.8 29 22 C 29 23.2 26.5 24.2 22.5 24.2 C 18.5 24.2 16 23.2 16 22 Z" fill="#ffffff"/><circle cx="22.5" cy="12.5" r="6" fill="#ffffff"/><path d="M 19.5 9.5 C 20.5 8.8 22 8.5 23.5 8.5" stroke="#d1d5db" stroke-width="1.2" stroke-linecap="round" fill="none"/></g></svg>',
+      b_pawn: '<svg viewBox="0 0 45 45" class="piece-svg"><g fill="#454341" stroke="#1c1a18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M 10 39.5 C 10 36.5 13.5 34.5 22.5 34.5 C 31.5 34.5 35 36.5 35 39.5 Z" fill="#454341"/><path d="M 12 36.5 C 15.5 35.5 29.5 35.5 33 36.5" stroke="#ffffff" stroke-width="1" stroke-opacity="0.4" fill="none"/><path d="M 16.8 22 C 16.8 27 14 31.5 13 34.5 L 32 34.5 C 31 31.5 28.2 27 28.2 22 Z" fill="#454341"/><path d="M 16 22 C 16 20.8 18.5 19.8 22.5 19.8 C 26.5 19.8 29 20.8 29 22 C 29 23.2 26.5 24.2 22.5 24.2 C 18.5 24.2 16 23.2 16 22 Z" fill="#454341"/><circle cx="22.5" cy="12.5" r="6" fill="#454341"/><path d="M 19.5 9.5 C 20.5 8.8 22 8.5 23.5 8.5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.55" fill="none"/></g></svg>',
+    };
+
+    let boardState = {};
+    let selectedSquare = null;
+    let isAnimating = false;
+    const particles = [];
+
+    const board = document.getElementById('board');
+    const grid = document.getElementById('grid');
+    const canvas = document.getElementById('fx-canvas');
+    const ctx = canvas.getContext('2d');
+    const bannerContainer = document.getElementById('banner-container');
+
+    function syncCanvas() {
+      canvas.width = grid.clientWidth;
+      canvas.height = grid.clientHeight;
+    }
+    window.addEventListener('resize', syncCanvas);
+
+    function initBoard() {
+      boardState = {
+        a8: { type: 'rook', color: 'b' }, b8: { type: 'knight', color: 'b' }, c8: { type: 'bishop', color: 'b' }, d8: { type: 'queen', color: 'b' }, e8: { type: 'king', color: 'b' }, f8: { type: 'bishop', color: 'b' }, g8: { type: 'knight', color: 'b' }, h8: { type: 'rook', color: 'b' },
+        a7: { type: 'pawn', color: 'b' }, b7: { type: 'pawn', color: 'b' }, c7: { type: 'pawn', color: 'b' }, d7: { type: 'pawn', color: 'b' }, e7: { type: 'pawn', color: 'b' }, f7: { type: 'pawn', color: 'b' }, g7: { type: 'pawn', color: 'b' }, h7: { type: 'pawn', color: 'b' },
+        a2: { type: 'pawn', color: 'w' }, b2: { type: 'pawn', color: 'w' }, c2: { type: 'pawn', color: 'w' }, d2: { type: 'pawn', color: 'w' }, e2: { type: 'pawn', color: 'w' }, f2: { type: 'pawn', color: 'w' }, g2: { type: 'pawn', color: 'w' }, h2: { type: 'pawn', color: 'w' },
+        a1: { type: 'rook', color: 'w' }, b1: { type: 'knight', color: 'w' }, c1: { type: 'bishop', color: 'w' }, d1: { type: 'queen', color: 'w' }, e1: { type: 'king', color: 'w' }, f1: { type: 'bishop', color: 'w' }, g1: { type: 'knight', color: 'w' }, h1: { type: 'rook', color: 'w' },
+      };
+      renderTiles();
+      syncCanvas();
+    }
+
+    function renderTiles() {
+      grid.innerHTML = '';
+      const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+      const ranks = ['8', '7', '6', '5', '4', '3', '2', '1'];
+
+      ranks.forEach((rank, r) => {
+        files.forEach((file, f) => {
+          const sq = file + rank;
+          const isLight = (r + f) % 2 === 0;
+          const tile = document.createElement('div');
+          tile.className = 'tile ' + (isLight ? 'light' : 'dark');
+          tile.id = 'sq-' + sq;
+          if (selectedSquare === sq) tile.classList.add('selected');
+
+          const piece = boardState[sq];
+          if (piece) {
+            tile.innerHTML = PIECE_SVGS[piece.color + '_' + piece.type] || '';
+          }
+
+          tile.addEventListener('click', () => onTileClick(sq));
+          grid.appendChild(tile);
+        });
+      });
+    }
+
+    function onTileClick(sq) {
+      if (isAnimating) return;
+      if (selectedSquare) {
+        if (selectedSquare === sq) {
+          selectedSquare = null;
+          renderTiles();
+          return;
+        }
+        const srcPiece = boardState[selectedSquare];
+        if (srcPiece) {
+          const targetPiece = boardState[sq];
+          executeCaptureMove(srcPiece.type, selectedSquare, sq, targetPiece ? 'brilliant' : 'normal');
+        }
+        selectedSquare = null;
+      } else {
+        if (boardState[sq]) {
+          selectedSquare = sq;
+          renderTiles();
+        }
+      }
+    }
+
+    function getCoords(sq) {
+      const f = sq.charCodeAt(0) - 97;
+      const r = 8 - parseInt(sq[1], 10);
+      const size = grid.clientWidth / 8;
+      return { x: f * size + size / 2, y: r * size + size / 2, size };
+    }
+
+    /**
+     * MASTER CAPTURE FUNCTION
+     */
+    function executeCaptureMove(pieceType, fromSquare, toSquare, moveQuality = 'brilliant') {
+      if (isAnimating) return;
+      isAnimating = true;
+
+      const from = getCoords(fromSquare);
+      const to = getCoords(toSquare);
+      const movingPiece = boardState[fromSquare] || { type: pieceType, color: 'w' };
+      const enemyPiece = boardState[toSquare];
+      const isCapture = !!enemyPiece;
+
+      delete boardState[fromSquare];
+      renderTiles();
+
+      // Create moving overlay
+      const movingEl = document.createElement('div');
+      movingEl.className = 'moving-overlay-piece';
+      movingEl.innerHTML = PIECE_SVGS[movingPiece.color + '_' + movingPiece.type];
+      board.appendChild(movingEl);
+
+      const startTime = performance.now();
+      const duration = pieceType === 'king' ? 620 : pieceType === 'knight' ? 540 : 400;
+
+      // Knight mid-point
+      const isKnight = pieceType === 'knight';
+      const midX = Math.abs(to.x - from.x) > Math.abs(to.y - from.y) ? to.x : from.x;
+      const midY = Math.abs(to.x - from.x) > Math.abs(to.y - from.y) ? from.y : to.y;
+
+      function step(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(1, elapsed / duration);
+
+        let curX, curY, scale = 1;
+
+        if (isKnight) {
+          if (progress < 0.5) {
+            const p1 = progress * 2;
+            curX = from.x + (midX - from.x) * p1;
+            curY = from.y + (midY - from.y) * p1;
+          } else {
+            const p2 = (progress - 0.5) * 2;
+            curX = midX + (to.x - midX) * p2;
+            curY = midY + (to.y - midY) * p2;
+          }
+          scale = 1 + Math.sin(progress * Math.PI) * 0.3;
+        } else if (pieceType === 'king') {
+          const ease = 1 - Math.pow(1 - progress, 3);
+          curX = from.x + (to.x - from.x) * ease;
+          curY = from.y + (to.y - from.y) * ease;
+        } else if (pieceType === 'pawn' && isCapture) {
+          const ease = Math.pow(progress, 2.5);
+          curX = from.x + (to.x - from.x) * ease;
+          curY = from.y + (to.y - from.y) * ease;
+        } else {
+          const ease = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+          curX = from.x + (to.x - from.x) * ease;
+          curY = from.y + (to.y - from.y) * ease;
+        }
+
+        movingEl.style.left = curX + 10 + 'px';
+        movingEl.style.top = curY + 10 + 'px';
+        movingEl.style.transform = 'translate(-50%, -50%) scale(' + scale + ')';
+
+        if (progress < 1) {
+          requestAnimationFrame(step);
+        } else {
+          movingEl.remove();
+          boardState[toSquare] = movingPiece;
+          renderTiles();
+          triggerImpact(to, moveQuality, isCapture);
+          isAnimating = false;
+        }
+      }
+
+      requestAnimationFrame(step);
+    }
+
+    function triggerImpact(to, moveQuality, isCapture) {
+      // 1. Board Jolt
+      board.classList.add('shake');
+      setTimeout(() => board.classList.remove('shake'), 400);
+
+      // 2. Shockwave
+      const sw = document.createElement('div');
+      sw.className = 'shockwave';
+      sw.style.left = to.x + 10 + 'px';
+      sw.style.top = to.y + 10 + 'px';
+      if (moveQuality === 'checkmate') sw.style.borderColor = '#ffd700';
+      if (moveQuality === 'blunder') sw.style.borderColor = '#ff0844';
+      board.appendChild(sw);
+      setTimeout(() => sw.remove(), 650);
+
+      // 3. Particles
+      const colors = moveQuality === 'checkmate' ? ['#ffd700', '#f59e0b', '#ffffff'] :
+                     moveQuality === 'blunder' ? ['#ff0844', '#ffb199', '#ffffff'] :
+                     ['#00f2fe', '#4facfe', '#38ef7d', '#ffffff'];
+      for (let i = 0; i < 35; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 8 + 3;
+        particles.push({
+          x: to.x, y: to.y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1.5,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          alpha: 1, life: 0, maxLife: Math.random() * 25 + 20,
+          size: Math.random() * 4 + 2
+        });
+      }
+
+      // 4. Badges & Banners
+      if (moveQuality !== 'normal') {
+        const badge = document.createElement('div');
+        badge.className = 'floating-badge';
+        badge.style.left = to.x + 10 + 'px';
+        badge.style.top = to.y + 10 + 'px';
+        badge.style.background = moveQuality === 'checkmate' ? 'linear-gradient(90deg, #f59e0b, #ffd700)' :
+                                 moveQuality === 'blunder' ? '#e11d48' : 'linear-gradient(90deg, #06b6d4, #10b981)';
+        badge.style.color = moveQuality === 'blunder' ? '#fff' : '#000';
+        badge.innerHTML = moveQuality === 'checkmate' ? '👑 #' : moveQuality === 'blunder' ? '💥 ??' : '⚡️ !!';
+        board.appendChild(badge);
+        setTimeout(() => badge.remove(), 1500);
+
+        bannerContainer.innerHTML = \`<div class="eval-banner \${moveQuality === 'checkmate' ? 'gold' : moveQuality === 'blunder' ? 'rose' : ''}">
+          <div style="font-weight:900; font-size:13px;">\${moveQuality === 'checkmate' ? '👑 ROYAL CHECKMATE' : moveQuality === 'blunder' ? '💥 BLUNDER' : '⚡️ BRILLIANT MOVE !!'}</div>
+          <div style="font-weight:bold; font-size:12px; opacity:0.8;">\${moveQuality === 'checkmate' ? 'M1' : '+6.5'}</div>
+        </div>\`;
+        setTimeout(() => bannerContainer.innerHTML = '', 2500);
+      }
+    }
+
+    // Particle Render Loop
+    function renderParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.life++;
+        p.x += p.vx; p.y += p.vy;
+        p.vy += 0.16; p.vx *= 0.96;
+        p.alpha = 1 - p.life / p.maxLife;
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+        } else {
+          ctx.save();
+          ctx.globalAlpha = p.alpha;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+      requestAnimationFrame(renderParticles);
+    }
+    requestAnimationFrame(renderParticles);
+
+    function runPreset(type) {
+      if (type === 'king_checkmate') {
+        boardState = { f6: { type: 'king', color: 'w' }, f7: { type: 'pawn', color: 'b' }, g8: { type: 'king', color: 'b' } };
+        renderTiles();
+        setTimeout(() => executeCaptureMove('king', 'f6', 'f7', 'checkmate'), 150);
+      } else if (type === 'knight_jump') {
+        boardState = { c3: { type: 'knight', color: 'w' }, e4: { type: 'queen', color: 'b' }, e8: { type: 'king', color: 'b' } };
+        renderTiles();
+        setTimeout(() => executeCaptureMove('knight', 'c3', 'e4', 'brilliant'), 150);
+      } else if (type === 'queen_sacrifice') {
+        boardState = { h5: { type: 'queen', color: 'w' }, h7: { type: 'pawn', color: 'b' }, g8: { type: 'king', color: 'b' } };
+        renderTiles();
+        setTimeout(() => executeCaptureMove('queen', 'h5', 'h7', 'brilliant'), 150);
+      } else if (type === 'rook_smash') {
+        boardState = { a1: { type: 'rook', color: 'w' }, a8: { type: 'rook', color: 'b' } };
+        renderTiles();
+        setTimeout(() => executeCaptureMove('rook', 'a1', 'a8', 'great'), 150);
+      } else if (type === 'bishop_slice') {
+        boardState = { c1: { type: 'bishop', color: 'w' }, g5: { type: 'knight', color: 'b' } };
+        renderTiles();
+        setTimeout(() => executeCaptureMove('bishop', 'c1', 'g5', 'great'), 150);
+      } else if (type === 'pawn_lunge') {
+        boardState = { e4: { type: 'pawn', color: 'w' }, d5: { type: 'pawn', color: 'b' } };
+        renderTiles();
+        setTimeout(() => executeCaptureMove('pawn', 'e4', 'd5', 'great'), 150);
+      } else if (type === 'blunder') {
+        boardState = { d1: { type: 'queen', color: 'w' }, d8: { type: 'rook', color: 'b' } };
+        renderTiles();
+        setTimeout(() => executeCaptureMove('queen', 'd1', 'd8', 'blunder'), 150);
+      }
+    }
+
+    function resetBoard() {
+      initBoard();
+    }
+
+    initBoard();
+  </script>
+</body>
+</html>

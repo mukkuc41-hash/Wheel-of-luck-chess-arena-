@@ -1,0 +1,6 @@
+{
+  "name": "Chess",
+  "description": "A full-stack multi-game arena featuring 5 distinct board games (Chess, Draughts, Backgammon, Snakes & Ladders, Ludo) with dynamic AI opponents, unbounded guest account migration, game-specific feature hubs, leaderboards, wheel of luck, and real-time PvP.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

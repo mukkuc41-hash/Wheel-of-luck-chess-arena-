@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess-Wheel-Arena: 96-Item Master Customization Hub</title>
+    <style>
+        :root {
+            --bg-dark: #0f1015;
+            --surface-dark: #181a20;
+            --surface-card: #22252e;
+            --accent-green: #2ecc71;
+            --accent-gold: #f1c40f;
+            --accent-blue: #3498db;
+            --accent-purple: #9b59b6;
+            --text-main: #ffffff;
+            --text-muted: #a0a4b8;
+            --border-color: #2f3640;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .hub-container {
+            max-width: 1200px;
+            width: 100%;
+            background: var(--surface-dark);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.8);
+            border: 1px solid var(--border-color);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        h1 { color: var(--accent-green); margin: 0; font-size: 24px; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        
+        .wallet-panel {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .wallet {
+            background: #111318;
+            padding: 10px 18px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--accent-gold);
+        }
+
+        .btn-earn {
+            background: linear-gradient(135deg, #e67e22, #d35400);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            transition: transform 0.1s, filter 0.2s;
+        }
+        .btn-earn:hover { transform: scale(1.05); filter: brightness(1.1); }
+
+        /* Filter Controls */
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            background: #121418;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .filter-select {
+            background: var(--surface-card);
+            color: var(--text-main);
+            border: 1px solid #444;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        /* Navigation Menu Tabs */
+        .menu-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: #222630;
+            color: var(--text-muted);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .section-title { font-size: 16px; color: #b0bec5; margin: 15px 0 10px; border-left: 4px solid var(--accent-green); padding-left: 10px; }
+
+        .catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 15px;
+            max-height: 550px;
+            overflow-y: auto;
+            padding-right: 5px;
+            margin-bottom: 20px;
+        }
+
+        .item-card {
+            background: var(--surface-card);
+            border: 1px solid #323846;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 10px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .item-card:hover { border-color: #4f5b6c; transform: translateY(-2px); }
+
+        .item-info h4 { margin: 0 0 5px; font-size: 15px; color: #fff; display: flex; justify-content: space-between; align-items: center; }
+        .item-info p { margin: 0; font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+        .item-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+        .item-badge { font-size: 10px; background: #111318; padding: 2px 6px; border-radius: 4px; color: #8ab4f8; border: 1px solid #333; font-weight: bold; }
+        .item-price { font-size: 14px; color: var(--accent-gold); font-weight: bold; }
+
+        .btn-action {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            transition: background 0.2s;
+            width: 100%;
+        }
+
+        .btn-buy { background: var(--accent-blue); color: white; }
+        .btn-buy:hover { background: #2980b9; }
+
+        .btn-apply { background: var(--accent-green); color: white; }
+        .btn-apply:hover { background: #27ae60; }
+        .btn-apply.applied { background: #4b6584; cursor: default; }
+
+        /* Preview Arena */
+        .preview-area {
+            background: #121418;
+            padding: 20px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 1px dashed #444;
+            margin-top: 15px;
+            gap: 12px;
+        }
+
+        .board-preview {
+            display: grid;
+            grid-template-columns: repeat(2, 70px);
+            grid-template-rows: repeat(1, 70px);
+            border: 4px solid #444;
+            margin: 15px 0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .square { width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; font-size: 40px; background: #b58863; position: relative; }
+        .square:first-child { background: #f0d9b5; color: #000; }
+
+        /* Sample Dynamic Test Keyframes */
+        @keyframes animExec {
+            0% { transform: scale(1) rotate(0deg); opacity: 1; filter: drop-shadow(0 0 0 transparent); }
+            50% { transform: scale(1.4) rotate(180deg); filter: drop-shadow(0 0 20px var(--anim-glow, #3498db)); }
+            100% { transform: scale(0) rotate(360deg); opacity: 0; }
+        }
+        .test-anim-active { animation: animExec 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+        .log-box {
+            background: #111318;
+            border: 1px solid var(--border-color);
+            padding: 12px 15px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: var(--accent-gold);
+            margin-top: 15px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .footer-branding { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 25px; font-size: 13px; color: #888; }
+        .india-flag { width: 24px; height: 16px; border: 1px solid #444; display: flex; flex-direction: column; }
+        .flag-stripe { flex: 1; }
+        .flag-saffron { background-color: #FF9933; }
+        .flag-white { background-color: #FFFFFF; display: flex; align-items: center; justify-content: center; }
+        .flag-wheel { width: 4px; height: 4px; border: 1px solid #000080; border-radius: 50%; }
+        .flag-green { background-color: #138808; }
+    </style>
+</head>
+<body>
+
+<div class="hub-container">
+    <header>
+        <h1>Chess-Wheel-Arena: 96-Item Master Customization Hub</h1>
+        <div class="wallet-panel">
+            <div class="wallet">Points: <span id="userPoints">10000</span> PTS</div>
+            <button class="btn-earn" onclick="openEarnMenu()">Earn Points (Wheel / Hatrick)</button>
+        </div>
+    </header>
+
+    <!-- Navigation Menu Tabs -->
+    <div class="menu-tabs">
+        <button class="tab-btn active" onclick="switchTab('shop', event)">Master Shop (96 Items)</button>
+        <button class="tab-btn" onclick="switchTab('inventory', event)">My Unlocked Inventory</button>
+        <button class="tab-btn" onclick="switchTab('preview', event)">Live Test Sandbox</button>
+    </div>
+
+    <!-- TAB 1: SHOP -->
+    <div id="tab-shop" class="tab-content active">
+        <div class="filter-bar">
+            <select id="filterPiece" class="filter-select" onchange="renderShop()">
+                <option value="ALL">All Chess Pieces</option>
+                <option value="Pawn">Pawn (P)</option>
+                <option value="Knight">Knight (N)</option>
+                <option value="Bishop">Bishop (B)</option>
+                <option value="Rook">Rook (R)</option>
+                <option value="Queen">Queen (Q)</option>
+                <option value="King">King (K)</option>
+            </select>
+            <select id="filterCategory" class="filter-select" onchange="renderShop()">
+                <option value="ALL">All Types (Animations & Effects)</option>
+                <option value="Capture Animation">Capture Animation (24)</option>
+                <option value="Occupying Animation">Occupying Animation (24)</option>
+                <option value="Capture Effect">Capture Effect (24)</option>
+                <option value="Occupying Effect">Occupying Effect (24)</option>
+            </select>
+        </div>
+        <div class="section-title" id="shopCountTitle">Browse Master Library (Cost: 1,000 PTS Each)</div>
+        <div class="catalog-grid" id="shopCatalog"></div>
+    </div>
+
+    <!-- TAB 2: INVENTORY -->
+    <div id="tab-inventory" class="tab-content">
+        <div class="section-title">Your Unlocked Loadouts & Equipping Hub</div>
+        <div class="catalog-grid" id="inventoryCatalog"></div>
+    </div>
+
+    <!-- TAB 3: SANDBOX -->
+    <div id="tab-preview" class="tab-content">
+        <div class="section-title">Live Test Sandbox Preview</div>
+        <div class="preview-area">
+            <p style="margin: 0 0 10px; font-size: 14px; color: var(--text-muted);">Test your equipped loadout item on a simulation tile:</p>
+            <div class="board-preview">
+                <div class="square">♖</div>
+                <div class="square" id="targetSquare"><span id="previewPiece" style="position:absolute;">♟</span></div>
+            </div>
+            <button class="btn-action btn-apply" onclick="triggerTestAnimation()" style="width: 220px;">Trigger Test Action</button>
+        </div>
+    </div>
+
+    <div class="log-box" id="activityLog">Welcome! You start with 10,000 Points. Explore the 96 unique custom animation & effect items across all 6 chess elements.</div>
+
+    <div class="footer-branding">
+        <div class="india-flag" title="Made in India">
+            <div class="flag-stripe flag-saffron"></div>
+            <div class="flag-stripe flag-white"><div class="flag-wheel"></div></div>
+            <div class="flag-stripe flag-green"></div>
+        </div>
+        <span>Made in India</span>
+    </div>
+</div>
+
+<script>
+    let points = parseInt(localStorage.getItem('chess_master_hub_points') || '10000', 10);
+    const itemCost = 1000;
+    let inventory = {};
+    let equipped = {};
+
+    try {
+        inventory = JSON.parse(localStorage.getItem('chess_master_hub_inventory') || '{}');
+        equipped = JSON.parse(localStorage.getItem('chess_master_hub_equipped') || '{}');
+    } catch(e) {}
+
+    const pieces = ['Pawn', 'Knight', 'Bishop', 'Rook', 'Queen', 'King'];
+    const types = [
+        { cat: 'Capture Animation', prefix: 'cap-anim' },
+        { cat: 'Occupying Animation', prefix: 'occ-anim' },
+        { cat: 'Capture Effect', prefix: 'cap-fx' },
+        { cat: 'Occupying Effect', prefix: 'occ-fx' }
+    ];
+
+    // Generate the complete 96-item library matrix
+    const masterCatalog = [];
+    let counter = 1;
+
+    pieces.forEach(piece => {
+        types.forEach(t => {
+            for (let i = 1; i <= 4; i++) {
+                masterCatalog.push({
+                    id: `item-${counter++}`,
+                    piece: piece,
+                    category: t.cat,
+                    name: `${piece} ${t.cat.split(' ')[0]} #${i}`,
+                    desc: `Unique kinetic variant #${i} for ${piece} element under ${t.cat}.`,
+                    glowColor: ['#e74c3c', '#3498db', '#f1c40f', '#9b59b6'][i-1]
+                });
+            }
+        });
+    });
+
+    function saveState() {
+        localStorage.setItem('chess_master_hub_points', points.toString());
+        localStorage.setItem('chess_master_hub_inventory', JSON.stringify(inventory));
+        localStorage.setItem('chess_master_hub_equipped', JSON.stringify(equipped));
+    }
+
+    function switchTab(tabName, evt) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+        if (evt && evt.currentTarget) {
+            evt.currentTarget.classList.add('active');
+        }
+
+        if (tabName === 'shop') {
+            document.getElementById('tab-shop').classList.add('active');
+            renderShop();
+        } else if (tabName === 'inventory') {
+            document.getElementById('tab-inventory').classList.add('active');
+            renderInventory();
+        } else if (tabName === 'preview') {
+            document.getElementById('tab-preview').classList.add('active');
+        }
+    }
+
+    function renderShop() {
+        const pieceFilter = document.getElementById('filterPiece').value;
+        const catFilter = document.getElementById('filterCategory').value;
+
+        const filtered = masterCatalog.filter(item => {
+            const matchPiece = (pieceFilter === 'ALL' || item.piece === pieceFilter);
+            const matchCat = (catFilter === 'ALL' || item.category === catFilter);
+            return matchPiece && matchCat;
+        });
+
+        document.getElementById('shopCountTitle').innerText = `Browse Master Library (${filtered.length} Items Displayed, Cost: 1,000 PTS Each)`;
+        
+        const shopEl = document.getElementById('shopCatalog');
+        shopEl.innerHTML = '';
+
+        filtered.forEach(item => {
+            const isOwned = inventory[item.id] || false;
+            const card = document.createElement('div');
+            card.className = 'item-card';
+            card.style.borderLeftColor = item.glowColor;
+            card.style.borderLeftWidth = '3px';
+            card.innerHTML = `
+                <div class="item-info">
+                    <h4>${item.name} <span class="item-price">${itemCost} PTS</span></h4>
+                    <div class="item-meta">
+                        <span class="item-badge">${item.piece}</span>
+                        <span class="item-badge">${item.category}</span>
+                    </div>
+                    <p style="margin-top:6px;">${item.desc}</p>
+                </div>
+                <div style="margin-top: 8px;">
+                    <button class="btn-action ${isOwned ? 'btn-apply' : 'btn-buy'}" 
+                            ${isOwned ? 'disabled style="background:#333; color:#777; cursor:default;"' : ''} 
+                            onclick="buyItem('${item.id}')">
+                        ${isOwned ? '✓ Unlocked in Inventory' : 'Buy Item (1,000 PTS)'}
+                    </button>
+                </div>
+            `;
+            shopEl.appendChild(card);
+        });
+        updateWalletDisplay();
+    }
+
+    function renderInventory() {
+        const invEl = document.getElementById('inventoryCatalog');
+        invEl.innerHTML = '';
+
+        const ownedItems = masterCatalog.filter(item => inventory[item.id]);
+
+        if (ownedItems.length === 0) {
+            invEl.innerHTML = `<p style="color:var(--text-muted); grid-column: 1/-1; text-align:center; padding: 30px;">Your inventory is empty. Purchase items from the Master Shop first!</p>`;
+            return;
+        }
+
+        ownedItems.forEach(item => {
+            const slotKey = `${item.piece}-${item.category}`;
+            const isEquipped = equipped[slotKey] === item.id;
+
+            const card = document.createElement('div');
+            card.className = 'item-card';
+            if (isEquipped) {
+                card.style.borderColor = 'var(--accent-green)';
+            }
+            card.innerHTML = `
+                <div class="item-info">
+                    <h4>${item.name}</h4>
+                    <div class="item-meta">
+                        <span class="item-badge">${item.piece}</span>
+                        <span class="item-badge">${item.category}</span>
+                    </div>
+                    <p style="margin-top:6px;">${item.desc}</p>
+                </div>
+                <div style="margin-top: 8px;">
+                    <button class="btn-action btn-apply ${isEquipped ? 'applied' : ''}" onclick="equipItem('${item.id}', '${item.piece}', '${item.category}')">
+                        ${isEquipped ? '✓ Currently Equipped' : 'Equip Loadout'}
+                    </button>
+                </div>
+            `;
+            invEl.appendChild(card);
+        });
+    }
+
+    function buyItem(id) {
+        const item = masterCatalog.find(i => i.id === id);
+        if (points >= itemCost) {
+            points -= itemCost;
+            inventory[id] = true;
+            saveState();
+            logMessage(`Successfully purchased "${item.name}" for ${itemCost} PTS!`);
+            renderShop();
+        } else {
+            logMessage("Insufficient points! Earn more points using Daily Wheel or Hatrick challenges.");
+        }
+    }
+
+    function equipItem(id, piece, category) {
+        const slotKey = `${piece}-${category}`;
+        equipped[slotKey] = id;
+        saveState();
+        const item = masterCatalog.find(i => i.id === id);
+        logMessage(`Equipped "${item.name}" for slot [${piece} - ${category}]!`);
+        renderInventory();
+    }
+
+    function openEarnMenu() {
+        const choice = prompt("Choose points earning method:\n1. Spin Daily Wheel (+500 PTS)\n2. Win Match & Simultaneous Hatrick (+2,000 PTS)\n3. Grandmaster Blitz Quest (+1,500 PTS)");
+        if (choice === '1') {
+            points += 500;
+            saveState();
+            logMessage("Daily Wheel spun successfully! Earned +500 PTS.");
+        } else if (choice === '2') {
+            points += 2000;
+            saveState();
+            logMessage("Victory & Simultaneous Hatrick achieved! Earned +2,000 PTS.");
+        } else if (choice === '3') {
+            points += 1500;
+            saveState();
+            logMessage("Grandmaster Blitz Quest completed! Earned +1,500 PTS.");
+        }
+        updateWalletDisplay();
+    }
+
+    function updateWalletDisplay() {
+        document.getElementById('userPoints').innerText = points.toLocaleString();
+    }
+
+    function logMessage(msg) {
+        document.getElementById('activityLog').innerText = msg;
+    }
+
+    function triggerTestAnimation() {
+        const targetSquare = document.getElementById('targetSquare');
+        targetSquare.innerHTML = `<span id="previewPiece" style="position:absolute;" class="test-anim-active">♟</span>`;
+
+        setTimeout(() => {
+            targetSquare.innerHTML = `<span id="previewPiece" style="position:absolute;">♟</span>`;
+        }, 650);
+    }
+
+    window.onload = renderShop;
+</script>
+
+</body>
+</html>

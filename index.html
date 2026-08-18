@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="google-site-verification" content="t4EUubj7UT2grBOoj7C3g3s0lI6SxnO0XLGRVPSB6WY" />
+    
+    <!-- Title Tag SEO -->
+    <title>Play Duo Chess Online & Multiplayer: Wheel of Luck Chess Arena</title>
+
+    <!-- Meta Description SEO -->
+    <meta name="description" content="Play Duo Chess online in the Wheel of Luck Chess Arena. Enjoy random duo matchmaking, live multiplayer, puzzles, tactical AI analysis, and global leaderboards." />
+    <meta name="keywords" content="chess, duo chess, wheel of luck chess, online chess, multiplayer chess, chess puzzles, AI chess, chess arena" />
+    <meta name="author" content="Wheel of Luck Chess Arena" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Canonical URL SEO -->
+    <link rel="canonical" href="https://playduochess.ai.studio/" />
+
+    <!-- Open Graph Tags SEO -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://playduochess.ai.studio/" />
+    <meta property="og:title" content="Wheel of Luck Chess Arena | Play Duo Chess Online" />
+    <meta property="og:description" content="Join Wheel of Luck Chess Arena. Play Duo Chess online with real-time wheel matchmaking, tactical puzzles, AI engine analysis, and global rankings." />
+    <meta property="og:image" content="https://playduochess.ai.studio/og-image.png" />
+    <meta property="og:site_name" content="Wheel of Luck Chess Arena" />
+
+    <!-- Twitter Card Tags SEO -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://playduochess.ai.studio/" />
+    <meta name="twitter:title" content="Wheel of Luck Chess Arena | Play Duo Chess Online" />
+    <meta name="twitter:description" content="Play Duo Chess online with random duo wheel matchmaking, puzzles, and multiplayer rooms." />
+    <meta name="twitter:image" content="https://playduochess.ai.studio/og-image.png" />
+
+    <!-- Favicon SEO (Gold Crown SVG) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👑</text></svg>" />
+
+    <!-- Schema.org SEO (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Wheel of Luck Chess Arena",
+      "operatingSystem": "Web",
+      "applicationCategory": "GameApplication",
+      "genre": "Chess, Strategy, Multiplayer",
+      "url": "https://playduochess.ai.studio/",
+      "description": "Play Duo Chess online with Wheel of Luck random matchmaking, tactical AI evaluation, live multiplayer rooms, and daily puzzles.",
+      "playMode": ["SinglePlayer", "MultiPlayer"],
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "Wheel of Luck Chess Arena"
+      }
+    }
+    </script>
+    <!-- Preloader Overlay CSS & Animations -->
+    <style>
+      #preloader-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        background: radial-gradient(circle at center, #1a1c2e 0%, #0b0f19 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1), visibility 1.2s ease;
+      }
+
+      #preloader-overlay.hidden-overlay {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      .preloader-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        text-align: center;
+      }
+
+      .logo-icon-wrap {
+        position: relative;
+        width: 88px;
+        height: 88px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .logo-ring {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        border: 3px solid transparent;
+        border-top-color: #f59e0b;
+        border-right-color: #8b5cf6;
+        animation: spin-ring 3.5s linear infinite;
+      }
+
+      .logo-pulse-bg {
+        position: absolute;
+        inset: -12px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(245, 158, 11, 0.25) 0%, rgba(139, 92, 246, 0.1) 70%, transparent 100%);
+        animation: pulse-glow 3.5s ease-in-out infinite;
+      }
+
+      .logo-crown-icon {
+        font-size: 3rem;
+        filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.8));
+        animation: float-crown 4s ease-in-out infinite;
+      }
+
+      .logo-text-title {
+        font-size: 2.2rem;
+        font-weight: 900;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        background: linear-gradient(135deg, #fef08a 0%, #f59e0b 50%, #c084fc 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 2px 10px rgba(245, 158, 11, 0.3));
+        animation: tracking-in 2.2s cubic-bezier(0.215, 0.61, 0.355, 1) both;
+      }
+
+      .logo-subtext {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #94a3b8;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .preloader-bar-wrap {
+        width: 240px;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 999px;
+        overflow: hidden;
+        position: relative;
+        margin-top: 8px;
+        border: 1px solid rgba(245, 158, 11, 0.2);
+      }
+
+      .preloader-bar-fill {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #f59e0b, #c084fc, #06b6d4);
+        border-radius: 999px;
+        transition: width 0.1s linear;
+      }
+
+      .preloader-status-text {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #fde047;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin-top: 4px;
+        font-family: monospace;
+      }
+
+      @keyframes spin-ring {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      @keyframes pulse-glow {
+        0%, 100% { transform: scale(0.95); opacity: 0.5; }
+        50% { transform: scale(1.15); opacity: 0.9; }
+      }
+
+      @keyframes float-crown {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-6px); }
+      }
+
+      @keyframes tracking-in {
+        0% { letter-spacing: -0.2em; opacity: 0; transform: scale(0.9); }
+        100% { letter-spacing: 0.15em; opacity: 1; transform: scale(1); }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Fullscreen Chess Pro Preloader Overlay -->
+    <div id="preloader-overlay">
+      <div class="preloader-content">
+        <div class="logo-icon-wrap">
+          <div class="logo-pulse-bg"></div>
+          <div class="logo-ring"></div>
+          <div class="logo-crown-icon">♔</div>
+        </div>
+        <div class="logo-text-title">Chess Pro</div>
+        <div class="logo-subtext">Multi-Game Arena</div>
+        <div class="preloader-bar-wrap">
+          <div id="preloader-fill" class="preloader-bar-fill"></div>
+        </div>
+        <div id="preloader-status" class="preloader-status-text">Loading Arena... 0%</div>
+      </div>
+    </div>
+
+    <!-- Vanilla JS Preloader Hide Script -->
+    <script>
+      (function() {
+        const startTime = Date.now();
+        const TOTAL_LOADING_TIME_MS = 5000; // Exact 5.0 seconds splash loading animation
+
+        const fillEl = document.getElementById('preloader-fill');
+        const statusEl = document.getElementById('preloader-status');
+
+        const interval = setInterval(() => {
+          const elapsed = Date.now() - startTime;
+          const pct = Math.min(100, Math.floor((elapsed / TOTAL_LOADING_TIME_MS) * 100));
+          if (fillEl) fillEl.style.width = pct + '%';
+          if (statusEl) statusEl.textContent = 'Loading Arena... ' + pct + '%';
+
+          if (pct >= 100) {
+            clearInterval(interval);
+          }
+        }, 50);
+
+        function hidePreloader() {
+          const preloader = document.getElementById('preloader-overlay');
+          if (!preloader || preloader.classList.contains('hidden-overlay')) return;
+
+          const elapsedTime = Date.now() - startTime;
+          const remainingDelay = Math.max(0, TOTAL_LOADING_TIME_MS - elapsedTime);
+
+          setTimeout(() => {
+            preloader.classList.add('hidden-overlay');
+            setTimeout(() => {
+              if (preloader && preloader.parentNode) {
+                preloader.parentNode.removeChild(preloader);
+              }
+            }, 1250);
+          }, remainingDelay);
+        }
+
+        if (document.readyState === 'complete') {
+          hidePreloader();
+        } else {
+          window.addEventListener('load', function() {
+            hidePreloader();
+          });
+          // Fallback timer to ensure preloader hides
+          setTimeout(hidePreloader, 6000);
+        }
+
+        // Expose global helper for React to call when ready
+        window.hideChessProPreloader = hidePreloader;
+      })();
+    </script>
+
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

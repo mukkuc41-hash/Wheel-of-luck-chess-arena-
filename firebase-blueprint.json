@@ -1,0 +1,21 @@
+{
+  "entities": {
+    "users": {
+      "title": "User Profiles",
+      "description": "User account information and saved game settings synchronized across devices",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "displayName": { "type": "string", "description": "User display name" },
+        "email": { "type": "string", "description": "User email address" },
+        "photoURL": { "type": "string", "description": "User profile avatar photo URL" },
+        "lastLogin": { "type": "string", "description": "ISO timestamp of last login" },
+        "eloRating": { "type": "number", "description": "Chess / Board game Elo rating" },
+        "totalWins": { "type": "number", "description": "Total matches won" },
+        "totalGames": { "type": "number", "description": "Total matches played" },
+        "savedData": { "type": "object", "description": "Custom game state and settings snapshot" }
+      },
+      "required": ["uid", "email"]
+    }
+  }
+}
