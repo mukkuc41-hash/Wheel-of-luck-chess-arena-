@@ -46,6 +46,7 @@ import {
   getMasterInventory,
   findCatalogItem,
   isVariationPurchased,
+  isCryStatePurchased,
   purchaseCatalogItem,
   equipCatalogItem,
   unequipCatalogItem,
@@ -799,12 +800,18 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
 
     // Check for pieces newly entering cry state conditions (Element Cry Matrix or >= 3 enemy attackers)
     for (const item of stressList) {
+      // Cry effects and animations ONLY apply and work if purchased in the catalog/shop!
+      const isPurchased = isCryStatePurchased(item.pieceCode);
+      if (!isPurchased) {
+        continue;
+      }
+
       const fenKey = `${chess.history().length}_${item.square}_${item.pieceType}_${item.attackerCount}_${item.cryEvaluation?.behaviorTitle || ''}`;
       if (!triggeredHighStressSetRef.current.has(fenKey)) {
         triggeredHighStressSetRef.current.add(fenKey);
 
-        // 1. Award +2,500 Points Reward
-        addPoints(2500, `Element Cry Defense (${item.pieceCode} - ${item.cryEvaluation?.behaviorTitle || 'Tactical Threat'})`);
+        // 1. Award +100 Points Reward per cry for the 6 elements
+        addPoints(100, `Element Cry Defense (${item.pieceCode} - ${item.cryEvaluation?.behaviorTitle || 'Tactical Threat'})`);
         setUserPointsState(getUserPoints());
 
         // 2. Play piece-specific synthesized cry sound
@@ -832,7 +839,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
         ]);
         setTimeout(() => setShockwaves((prev) => prev.filter((s) => s.id !== shockId)), 800);
 
-        // Add floating cry reward badge
+        // Add floating cry reward badge (+100 PTS)
         const badgeId = Date.now() + Math.random();
         const behaviorName = item.cryEvaluation?.behaviorTitle || 'CRY STATE';
         setFloatingBadges((prev) => [
@@ -841,7 +848,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
             id: badgeId,
             x: coords.x,
             y: coords.y,
-            text: `😭 ${behaviorName.toUpperCase()} +2,500 PTS (${item.attackerCount}⚔️)`,
+            text: `😭 ${behaviorName.toUpperCase()} +100 PTS (${item.attackerCount}⚔️)`,
             color: 'text-amber-300 font-black',
             bg: 'bg-gradient-to-r from-amber-950/95 to-slate-950/95',
             border: 'border-amber-400',
@@ -868,10 +875,10 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
           setTimeout(() => setIsBoardShaking(false), 420);
         }
 
-        // Toast feedback
+        // Toast feedback (+100 PTS)
         const customMsg = item.cryEvaluation?.threatDescription
-          ? `⚠️ ${item.cryEvaluation.behaviorTitle.toUpperCase()}: ${item.cryEvaluation.threatDescription} +2,500 PTS Cry Reward Granted!`
-          : `⚠️ HIGH STRESS! ${crySpec?.pieceName || item.pieceCode} is under attack by ${item.attackerCount} enemy pieces! 3D Tears Flowing & +2,500 PTS Cry Reward Granted!`;
+          ? `⚠️ ${item.cryEvaluation.behaviorTitle.toUpperCase()}: ${item.cryEvaluation.threatDescription} +100 PTS Cry Reward Granted!`
+          : `⚠️ HIGH STRESS! ${crySpec?.pieceName || item.pieceCode} is under attack by ${item.attackerCount} enemy pieces! 3D Tears Flowing & +100 PTS Cry Reward Granted!`;
 
         setVfxFeedbackToast({
           message: customMsg,

@@ -60,7 +60,7 @@ const DETAILED_PIECE_DATA: Record<
     fxCapNames: ['Pawn Amber Spark', 'Pawn Emerald Haze', 'Pawn Ruby Glint', 'Pawn Cobalt Edge'],
     fxOccNames: ['Pawn Silver Beacon', 'Pawn Solar Sparkle', 'Pawn Radiant Flare', 'Pawn Prism Ring'],
     cryName: 'Pawn Despair Wail',
-    cryDesc: 'Pawn dips downward with high-frequency micro-jitter and weeping amber soundwave rings (+5,000 PTS).',
+    cryDesc: 'Pawn dips downward with high-frequency micro-jitter and weeping amber soundwave rings (+100 PTS).',
     cryColor: '#d35400',
   },
   Knight: {
@@ -69,7 +69,7 @@ const DETAILED_PIECE_DATA: Record<
     fxCapNames: ['Knight Electric Arc', 'Knight Bronze Shield', 'Knight Neon Cyan Pulse', 'Knight Crimson Surge'],
     fxOccNames: ['Knight Storm Aura', 'Knight Gallop Surge', 'Knight Blue Plasma', 'Knight Golden Hoof'],
     cryName: 'Knight War Cry',
-    cryDesc: 'Knight stallion rears backward with aggressive hoof stamping and crackling electric blue voltage (+5,000 PTS).',
+    cryDesc: 'Knight stallion rears backward with aggressive hoof stamping and crackling electric blue voltage (+100 PTS).',
     cryColor: '#00d2ff',
   },
   Bishop: {
@@ -78,7 +78,7 @@ const DETAILED_PIECE_DATA: Record<
     fxCapNames: ['Bishop Holy Gold Aura', 'Bishop Mystic Purple Mist', 'Bishop Celestial White Flare', 'Bishop Emerald Ray'],
     fxOccNames: ['Bishop Sanctuary Glow', 'Bishop Celestial Beam', 'Bishop Astral Veil', 'Bishop Golden Cross'],
     cryName: 'Bishop Chant Echo',
-    cryDesc: 'Bishop tilts in sacred pendulum cadence while expanding radiant golden-violet cross fields (+5,000 PTS).',
+    cryDesc: 'Bishop tilts in sacred pendulum cadence while expanding radiant golden-violet cross fields (+100 PTS).',
     cryColor: '#8b5cf6',
   },
   Rook: {
@@ -87,7 +87,7 @@ const DETAILED_PIECE_DATA: Record<
     fxCapNames: ['Rook Steel Armor', 'Rook Magma Core', 'Rook Titanium Chrome', 'Rook Obsidian Dark'],
     fxOccNames: ['Rook Citadel Bastion', 'Rook Seismic Tremor', 'Rook Molten Foundry', 'Rook Aegis Ward'],
     cryName: 'Rook Siege Siren',
-    cryDesc: 'Rook battlements expand with deep resonant sub-bass horn blasts over boiling magma shockwaves (+5,000 PTS).',
+    cryDesc: 'Rook battlements expand with deep resonant sub-bass horn blasts over boiling magma shockwaves (+100 PTS).',
     cryColor: '#ef4444',
   },
   Queen: {
@@ -96,7 +96,7 @@ const DETAILED_PIECE_DATA: Record<
     fxCapNames: ['Queen Sovereign Gold', 'Queen Imperial Amethyst', 'Queen Diamond Prism', 'Queen Solar Flare'],
     fxOccNames: ['Queen Supernova Ray', 'Queen Celestial Tiara', 'Queen Prismatic Radiance', 'Queen Royal Corona'],
     cryName: 'Queen Sovereign Command',
-    cryDesc: 'Queen levitates vertically discharging triple-tier shockwave ripple rings and brilliant solar corona (+5,000 PTS).',
+    cryDesc: 'Queen levitates vertically discharging triple-tier shockwave ripple rings and brilliant solar corona (+100 PTS).',
     cryColor: '#ffd700',
   },
   King: {
@@ -105,7 +105,7 @@ const DETAILED_PIECE_DATA: Record<
     fxCapNames: ['King Imperial Gold Crown', 'King Platinum Sovereign', 'King Mystic Ruby Sovereign', 'King Eternal Realm'],
     fxOccNames: ['King Monarch Scepter', 'King Sovereign Aegis', 'King Golden Standard', 'King Imperial Diadem'],
     cryName: 'King Imperial Decree',
-    cryDesc: 'King thrusts royal crown upward unleashing magnificent platinum-gold sovereign shield dominance (+5,000 PTS).',
+    cryDesc: 'King thrusts royal crown upward unleashing magnificent platinum-gold sovereign shield dominance (+100 PTS).',
     cryColor: '#fbbf24',
   },
 };
@@ -338,6 +338,18 @@ export function isVariationPurchased(
   if (!item) return false;
   const inv = getMasterInventory();
   return Boolean(inv[item.id]);
+}
+
+/**
+ * Checks whether the exclusive Cry State item for a given piece element is purchased in user inventory.
+ * Cry animations and effects only apply and work if purchased!
+ */
+export function isCryStatePurchased(pieceCode: 'P' | 'N' | 'B' | 'R' | 'Q' | 'K' | string): boolean {
+  const pName = normalizePieceName(pieceCode);
+  const cryItem = MASTER_96_CATALOG.find((item) => item.piece === pName && item.category === 'Cry State');
+  if (!cryItem) return false;
+  const inv = getMasterInventory();
+  return Boolean(inv[cryItem.id]);
 }
 
 export function purchaseCatalogItem(itemId: string): { success: boolean; message: string; item?: CatalogItem } {

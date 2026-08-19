@@ -45,6 +45,8 @@ const GAME_NAMES: Record<ActiveBoardGame, string> = {
   hearts: 'Hearts Club',
   ginrummy: 'Gin Rummy',
   speed: 'Speed Spit',
+  findthenumber: 'Find Number',
+  carrom: 'Carrom Board',
 };
 
 const GAME_ICONS: Record<ActiveBoardGame, string> = {
@@ -64,12 +66,15 @@ const GAME_ICONS: Record<ActiveBoardGame, string> = {
   hearts: '♥',
   ginrummy: '🎴',
   speed: '⚡',
+  findthenumber: '🖐️',
+  carrom: '🥏',
 };
 
 const ALL_GAMES: ActiveBoardGame[] = [
   'chess', 'checkers', 'backgammon', 'snakes', 'ludo', 'gomoku',
   'reversi', 'connect4', 'ultimatetictactoe', 'dotsandboxes',
-  'battleship', 'sim', 'uno', 'hearts', 'ginrummy', 'speed'
+  'battleship', 'sim', 'uno', 'hearts', 'ginrummy', 'speed',
+  'findthenumber', 'carrom'
 ];
 
 // Seeded mock stats per game if backend data array is empty
@@ -129,6 +134,12 @@ const SEEDED_LEADERBOARDS: Record<ActiveBoardGame, LeaderboardUser[]> = {
   ],
   speed: [
     { username: 'SpitSpeed_Demon', score: 2220, times_played: 54, wins: 50, losses: 4, draws: 0, resigns: 0, total_time_seconds: 7100, totalGames: 54, winRate: 92, global_rank: 1, lastActive: Date.now() },
+  ],
+  findthenumber: [
+    { username: 'EagleEye_Optics', score: 2160, times_played: 48, wins: 44, losses: 4, draws: 0, resigns: 0, total_time_seconds: 4800, totalGames: 48, winRate: 92, global_rank: 1, lastActive: Date.now() },
+  ],
+  carrom: [
+    { username: 'StrikerLegend_Raj', score: 2310, times_played: 60, wins: 55, losses: 5, draws: 0, resigns: 0, total_time_seconds: 13200, totalGames: 60, winRate: 92, global_rank: 1, lastActive: Date.now() },
   ],
 };
 

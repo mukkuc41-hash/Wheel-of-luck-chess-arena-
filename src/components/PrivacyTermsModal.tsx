@@ -1,50 +1,102 @@
-import React, { useState } from 'react';
-import { X, ShieldCheck, FileText, Smartphone, Mail, Globe, Lock, PlayCircle, Image as ImageIcon, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, ShieldCheck, FileText, Smartphone, Mail, Globe, Lock, PlayCircle, Image as ImageIcon, ArrowRight, AlertTriangle } from 'lucide-react';
+import { agreePrivacyPolicy, hasAgreedPrivacyPolicy } from '../utils/auth';
 
 interface PrivacyTermsModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultTab?: 'privacy' | 'terms' | 'appflow';
+  isCompulsory?: boolean;
+  onAgree?: () => void;
 }
 
 export const PrivacyTermsModal: React.FC<PrivacyTermsModalProps> = ({
   isOpen,
   onClose,
   defaultTab = 'privacy',
+  isCompulsory = false,
+  onAgree,
 }) => {
   const [activeTab, setActiveTab] = useState<'privacy' | 'terms' | 'appflow'>(defaultTab);
-  const [isAgreed, setIsAgreed] = useState<boolean>(true);
+  const [isAgreed, setIsAgreed] = useState<boolean>(!isCompulsory && hasAgreedPrivacyPolicy());
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(defaultTab);
+      setIsAgreed(hasAgreedPrivacyPolicy());
+    }
+  }, [isOpen, defaultTab]);
 
   if (!isOpen) return null;
 
+  const handleAgreeAndProceed = async () => {
+    if (!isAgreed) {
+      alert('You must read and agree to all terms and conditions and privacy policy before entering the platform.');
+      return;
+    }
+    await agreePrivacyPolicy();
+    if (onAgree) {
+      onAgree();
+    }
+    onClose();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fadeIn">
-      <div className="bg-slate-950 border border-amber-500/30 rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl shadow-black/90 flex flex-col text-white">
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fadeIn"
+      onClick={(e) => {
+        if (!isCompulsory && e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className="bg-slate-950 border border-amber-500/40 rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl shadow-black/90 flex flex-col text-white">
         {/* Modal Header */}
         <div className="p-5 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-amber-950/40 via-slate-950 to-indigo-950/40 sticky top-0 z-10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 font-bold shadow-md">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 font-bold shadow-md shrink-0">
               <ShieldCheck className="w-5 h-5 text-amber-400" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
-                <span>Chess.pro Legal & App Architecture</span>
-                <span className="text-[10px] bg-amber-400/20 text-amber-300 border border-amber-400/30 px-2 py-0.5 rounded-full font-semibold">
-                  Last Updated: May 2026
-                </span>
+              <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2 flex-wrap">
+                <span>Chess.pro Legal &amp; User Agreement</span>
+                {isCompulsory ? (
+                  <span className="text-[10px] bg-red-500/20 text-red-300 border border-red-400/30 px-2 py-0.5 rounded-full font-bold">
+                    Mandatory Agreement Required
+                  </span>
+                ) : (
+                  <span className="text-[10px] bg-amber-400/20 text-amber-300 border border-amber-400/30 px-2 py-0.5 rounded-full font-semibold">
+                    Official Terms &amp; Policy
+                  </span>
+                )}
               </h2>
               <p className="text-xs text-slate-400">
-                Official Privacy Policy, Terms of Service & App Explanation
+                {isCompulsory
+                  ? 'Compulsory user agreement: You must accept all terms to access matches & track statistics'
+                  : 'Official Privacy Policy, Terms of Service & App Architecture'}
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {!isCompulsory && (
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition"
+              title="Close Modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
+
+        {/* Compulsory Notification Notice if needed */}
+        {isCompulsory && (
+          <div className="bg-amber-500/15 border-b border-amber-500/30 px-5 py-2.5 flex items-center gap-2.5 text-xs text-amber-200">
+            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>
+              Welcome! To ensure security, privacy compliance, and accurate telemetry time tracking, please agree to the terms below to unlock your first game.
+            </span>
+          </div>
+        )}
 
         {/* Navigation Tabs */}
         <div className="flex border-b border-white/10 bg-slate-900/60 p-1.5 gap-1 overflow-x-auto">
@@ -334,22 +386,16 @@ export const PrivacyTermsModal: React.FC<PrivacyTermsModalProps> = ({
               onChange={(e) => setIsAgreed(e.target.checked)}
               className="w-4 h-4 rounded accent-amber-400 bg-white/10 border-white/20 cursor-pointer"
             />
-            <span>I have read and agree to the Privacy Policy &amp; Terms</span>
+            <span>I have read and agree to all terms &amp; conditions and privacy policy</span>
           </label>
 
           <button
-            onClick={() => {
-              if (isAgreed) {
-                onClose();
-              } else {
-                alert('Please accept the Privacy Policy & Terms to proceed to the Main Page.');
-              }
-            }}
+            onClick={handleAgreeAndProceed}
             disabled={!isAgreed}
             className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-xs transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ShieldCheck className="w-4 h-4 text-slate-950" />
-            <span>I Agree &amp; Proceed to Main Page &gt;</span>
+            <span>I Agree &amp; Proceed to Main Platform &gt;</span>
           </button>
         </div>
       </div>

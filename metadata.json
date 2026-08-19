@@ -1,6 +1,6 @@
 {
   "name": "Chess",
-  "description": "A full-stack multi-game arena featuring 5 distinct board games (Chess, Draughts, Backgammon, Snakes & Ladders, Ludo) with dynamic AI opponents, unbounded guest account migration, game-specific feature hubs, leaderboards, wheel of luck, and real-time PvP.",
+  "description": "A full-stack multi-game arena featuring real-time statistics telemetry, compulsory user agreement privacy gate, consecutive daily streak engine, total game time tracking, career archives, 17 classic board & speed games including Find the Number: Hand Speed Challenge.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -281,8 +281,9 @@ export async function fetchCurrentUser(): Promise<UserSession | null> {
   return res.json();
 }
 
-export async function fetchUserStats(): Promise<UserStats> {
-  const res = await apiFetch('/api/stats');
+export async function fetchUserStats(gameType: string = 'all'): Promise<UserStats> {
+  const query = gameType && gameType !== 'all' ? `?game=${encodeURIComponent(gameType)}` : '';
+  const res = await apiFetch(`/api/stats${query}`);
   if (!res.ok) {
     return {
       totalGames: 0,
@@ -301,8 +302,9 @@ export async function fetchUserStats(): Promise<UserStats> {
   return res.json();
 }
 
-export async function fetchMatchHistory(): Promise<MatchRecord[]> {
-  const res = await apiFetch('/api/games/history');
+export async function fetchMatchHistory(gameType: string = 'all'): Promise<MatchRecord[]> {
+  const query = gameType && gameType !== 'all' ? `?game=${encodeURIComponent(gameType)}` : '';
+  const res = await apiFetch(`/api/games/history${query}`);
   if (!res.ok) return [];
   return res.json();
 }
@@ -328,3 +330,62 @@ export async function recordGameResult(match: {
     body: JSON.stringify(match),
   });
 }
+
+export async function trackGameOpened(gameType: string): Promise<void> {
+  try {
+    const currentCount = parseInt(localStorage.getItem('chess_games_opened_count') || '0', 10);
+    localStorage.setItem('chess_games_opened_count', (currentCount + 1).toString());
+    await apiFetch('/api/stats/game-opened', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameType }),
+    });
+  } catch (err) {
+    // Ignore network error on quick open
+  }
+}
+
+export async function syncGameTime(addedSeconds: number, gameType: string = 'chess'): Promise<void> {
+  try {
+    if (addedSeconds <= 0) return;
+    const currentActive = parseInt(localStorage.getItem('chess_total_game_time_sec') || '0', 10);
+    localStorage.setItem('chess_total_game_time_sec', (currentActive + addedSeconds).toString());
+    await apiFetch('/api/stats/time-sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ addedSeconds, gameType }),
+    });
+  } catch (err) {
+    // Ignore
+  }
+}
+
+export const PRIVACY_AGREED_KEY = 'chess_privacy_policy_agreed_v2';
+export const PRIVACY_AGREED_AT_KEY = 'chess_privacy_policy_agreed_timestamp';
+
+export function hasAgreedPrivacyPolicy(): boolean {
+  if (typeof localStorage === 'undefined') return false;
+  return localStorage.getItem(PRIVACY_AGREED_KEY) === 'true';
+}
+
+export function getPrivacyAgreementTimestamp(): number | null {
+  if (typeof localStorage === 'undefined') return null;
+  const ts = localStorage.getItem(PRIVACY_AGREED_AT_KEY);
+  return ts ? parseInt(ts, 10) : null;
+}
+
+export async function agreePrivacyPolicy(): Promise<void> {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(PRIVACY_AGREED_KEY, 'true');
+    localStorage.setItem(PRIVACY_AGREED_AT_KEY, Date.now().toString());
+  }
+  try {
+    await apiFetch('/api/user/privacy-agree', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (err) {
+    // Ignore
+  }
+}
+

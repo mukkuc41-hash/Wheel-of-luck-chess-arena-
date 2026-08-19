@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Bot, X, Send, Target, ShieldAlert, Award, Loader2 } from 'lucide-react';
+import { Sparkles, Bot, X, Send, Target, ShieldAlert, Award, Loader2, Zap } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { ActiveBoardGame } from '../types';
 
@@ -152,6 +152,22 @@ const GAME_AI_CONFIGS: Record<
     presets: [
       { label: 'Fast Matching', query: 'What cards in my hand connect ±1 to active center piles?', icon: <Target className="w-3.5 h-3.5 text-yellow-400" /> },
       { label: 'Stuck Pile Reset', query: 'When should we trigger a dual FLIP reset?', icon: <ShieldAlert className="w-3.5 h-3.5 text-orange-400" /> },
+    ],
+  },
+  findthenumber: {
+    title: 'Find Number AI',
+    badge: 'Scan & Speed Coach',
+    presets: [
+      { label: 'Scan Technique', query: 'What is the fastest optical strategy to find numbers on the hand?', icon: <Target className="w-3.5 h-3.5 text-cyan-400" /> },
+      { label: 'Grid Burst', query: 'How can I sprint-tap all 25 cross grid cells in sub-3 seconds?', icon: <Zap className="w-3.5 h-3.5 text-yellow-400" /> },
+    ],
+  },
+  carrom: {
+    title: 'Carrom Physics AI',
+    badge: 'Striker Master',
+    presets: [
+      { label: 'Bank Shot Angles', query: 'How do I calculate cushion bank shots into corner pockets?', icon: <Target className="w-3.5 h-3.5 text-amber-400" /> },
+      { label: 'Queen Cover Strategy', query: 'What is the highest percentage method to pocket and cover the Red Queen?', icon: <Sparkles className="w-3.5 h-3.5 text-red-400" /> },
     ],
   },
 };

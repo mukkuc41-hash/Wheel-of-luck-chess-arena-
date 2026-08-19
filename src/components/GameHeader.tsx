@@ -238,6 +238,26 @@ const GAME_BRANDING: Record<
     accentGlow: 'shadow-[0_0_15px_rgba(234,179,8,0.4)]',
     playerSlots: '2 Players',
   },
+  findthenumber: {
+    title: 'Find Number',
+    subtitle: 'Hand Speed',
+    icon: '🖐️',
+    bgGradient: 'bg-cyan-500',
+    borderColor: 'border-cyan-400/30',
+    textColor: 'text-cyan-400',
+    accentGlow: 'shadow-[0_0_15px_rgba(6,182,212,0.4)]',
+    playerSlots: '1-2 Players',
+  },
+  carrom: {
+    title: 'Carrom Board',
+    subtitle: 'Striker Arena',
+    icon: '🥏',
+    bgGradient: 'bg-amber-600',
+    borderColor: 'border-amber-400/30',
+    textColor: 'text-amber-300',
+    accentGlow: 'shadow-[0_0_15px_rgba(245,158,11,0.4)]',
+    playerSlots: '1-2 Players',
+  },
 };
 
 export const GameHeader: React.FC<GameHeaderProps> = ({

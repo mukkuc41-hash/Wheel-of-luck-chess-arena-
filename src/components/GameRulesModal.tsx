@@ -266,6 +266,35 @@ export const GameRulesModal: React.FC<GameRulesModalProps> = ({
               </ul>
             </div>
           )}
+
+          {activeGame === 'findthenumber' && (
+            <div className="space-y-3">
+              <div className="p-3 bg-cyan-500/10 border border-cyan-400/30 rounded-2xl text-cyan-200 font-bold">
+                Objective: Find the target number on the hand diagram and speed-fill the 25-cell cross grid!
+              </div>
+              <ul className="space-y-1.5 pl-2">
+                <li>• Click "Start Game" to generate a random target number (1-100) and initiate the clock.</li>
+                <li>• Locate and tap the correct target node scattered across the hand layout.</li>
+                <li>• Rapidly click/tap all 25 boxes in the action grid to mark them with crosses (X).</li>
+                <li>• Beat your record best-time and climb the speed challenge leaderboards!</li>
+              </ul>
+            </div>
+          )}
+
+          {activeGame === 'carrom' && (
+            <div className="space-y-3">
+              <div className="p-3 bg-amber-500/10 border border-amber-400/30 rounded-2xl text-amber-200 font-bold">
+                Objective: Strike and pocket carrom men into 4 corner pockets to outscore your opponent!
+              </div>
+              <ul className="space-y-1.5 pl-2">
+                <li>• <strong>Classic Points:</strong> White = 10 pts, Black = 5 pts, Red Queen = 25 pts (must cover with a carrom piece on same or next shot).</li>
+                <li>• <strong>Freestyle:</strong> Pocket any pieces to accumulate maximum points before the board clears.</li>
+                <li>• <strong>Disc Pool / Speed:</strong> Pocket all pieces against the clock or opponent with combo multipliers!</li>
+                <li>• <strong>Striker Controls:</strong> Drag striker horizontally along baseline, then pull back aim line to adjust angle and force &rarr; release to strike!</li>
+                <li>• <strong>Foul:</strong> Sinking the striker incurs a -5 pt penalty and returns a pocketed piece to the center.</li>
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Footer */}

@@ -20,7 +20,9 @@ export type ActiveBoardGame =
   | 'uno'
   | 'hearts'
   | 'ginrummy'
-  | 'speed';
+  | 'speed'
+  | 'findthenumber'
+  | 'carrom';
 
 export type TimeControlPreset = 'untimed' | '3+2' | '5+3' | '10+0' | '15+10' | 'custom';
 
@@ -148,6 +150,24 @@ export interface MatchRecord {
   timeControlPreset: string;
 }
 
+export interface SingleGameStats {
+  gameType: string;
+  gameName: string;
+  totalGames: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  resigns: number;
+  winRate: number;
+  lossRate: number;
+  drawRate: number;
+  resignRate: number;
+  totalTimeSeconds: number;
+  avgMatchTimeSeconds: number;
+  pvpGames: number;
+  aiGames: number;
+}
+
 export interface UserStats {
   totalGames: number;
   wins: number;
@@ -163,6 +183,10 @@ export interface UserStats {
   totalTimeSeconds?: number;
   avgMatchTimeSeconds?: number;
   dailyStreak?: number;
+  privacyAgreed?: boolean;
+  privacyAgreedAt?: number;
+  gameType?: string;
+  perGameStats?: Record<string, SingleGameStats>;
 }
 
 export interface VoiceReportRequest {

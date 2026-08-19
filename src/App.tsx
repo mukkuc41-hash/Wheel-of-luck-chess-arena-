@@ -51,6 +51,8 @@ import { UnoBoard } from './components/UnoBoard';
 import { HeartsBoard } from './components/HeartsBoard';
 import { GinRummyBoard } from './components/GinRummyBoard';
 import { SpeedBoard } from './components/SpeedBoard';
+import { FindTheNumberBoard } from './components/FindTheNumberBoard';
+import { CarromBoard } from './components/CarromBoard';
 import { GameBarSelector } from './components/GameBarSelector';
 import { GameOptionsControlPanel } from './components/GameOptionsControlPanel';
 import { GameRulesModal } from './components/GameRulesModal';
@@ -83,6 +85,10 @@ import {
   fetchCurrentUser,
   clearStoredToken,
   recordGameResult,
+  trackGameOpened,
+  syncGameTime,
+  hasAgreedPrivacyPolicy,
+  agreePrivacyPolicy,
 } from './utils/auth';
 import { socketService } from './utils/socket';
 import { getAIMove } from './utils/aiEngine';
@@ -169,6 +175,7 @@ export default function App() {
   const [isDailyWheelOpen, setIsDailyWheelOpen] = useState<boolean>(false);
   const [hatrickNotification, setHatrickNotification] = useState<{ show: boolean; reward: number; streak: number } | null>(null);
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState<boolean>(false);
+  const [isCompulsoryPrivacy, setIsCompulsoryPrivacy] = useState<boolean>(false);
   const [privacyModalTab, setPrivacyModalTab] = useState<'privacy' | 'terms' | 'appflow'>('privacy');
   const [isTelemetryOpen, setIsTelemetryOpen] = useState<boolean>(false);
   const [isGoogleAuthOpen, setIsGoogleAuthOpen] = useState<boolean>(false);
@@ -218,6 +225,15 @@ export default function App() {
         // Connect socket
         const socket = socketService.connect();
         socketService.authenticate(user.token);
+
+        // Check compulsory privacy & terms agreement
+        const agreed = hasAgreedPrivacyPolicy();
+        if (!agreed) {
+          setIsCompulsoryPrivacy(true);
+          setIsPrivacyModalOpen(true);
+        } else {
+          trackGameOpened(activeBoardGame);
+        }
       } catch (err) {
         console.error('Failed to initialize user session:', err);
       } finally {
@@ -225,9 +241,11 @@ export default function App() {
         if (typeof window !== 'undefined' && window.hideChessProPreloader) {
           window.hideChessProPreloader();
         }
-        // Step 1: Open Login Screen immediately after 5-second splash animation completes
+        // Step 1: Open Login Screen immediately after splash animation completes (if privacy already agreed)
         setTimeout(() => {
-          setIsAuthModalOpen(true);
+          if (hasAgreedPrivacyPolicy()) {
+            setIsAuthModalOpen(true);
+          }
         }, 5200);
       }
     }
@@ -286,6 +304,23 @@ export default function App() {
       }
     });
   }, [currentUser, selectedWheelGame, activeRoomId, lobbyUsers]);
+
+  // Track each game open event whenever a game is switched or loaded
+  useEffect(() => {
+    if (hasAgreedPrivacyPolicy()) {
+      trackGameOpened(activeBoardGame);
+    }
+  }, [activeBoardGame]);
+
+  // Periodic active gameplay duration synchronization (starts when user agreements privacy policy and starts playing)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (hasAgreedPrivacyPolicy() && isGameActive && !isPaused) {
+        syncGameTime(10, activeBoardGame);
+      }
+    }, 10000);
+    return () => clearInterval(timer);
+  }, [isGameActive, isPaused, activeBoardGame]);
 
   // 2. Socket.io Event Handlers
   useEffect(() => {
@@ -779,14 +814,28 @@ export default function App() {
   const handleResign = () => {
     soundFx.playGameOver(false);
     setIsGameActive(false);
+    const winningColor = activeTurn === 'w' ? 'b' : 'w';
     setGameResult({
-      winner: activeTurn === 'w' ? 'b' : 'w',
+      winner: winningColor,
       reason: 'resignation',
     });
 
     if (gameMode === 'pvp' && activeRoomId) {
       const socket = socketService.getSocket();
       socket?.emit('game:resign', { roomId: activeRoomId });
+    } else if (gameMode === 'ai') {
+      recordGameResult({
+        gameType: activeBoardGame,
+        mode: 'ai',
+        whiteUsername: currentUser?.username || 'Guest',
+        blackUsername: `Computer (${settings.aiDifficulty})`,
+        winner: winningColor,
+        reason: 'resignation',
+        moveCount: moveRecords.length,
+        pgn,
+        moves: moveRecords,
+        timeControlPreset: settings.timeControl.preset,
+      });
     }
   };
 
@@ -1284,6 +1333,48 @@ export default function App() {
             </div>
           )}
 
+          {activeBoardGame === 'findthenumber' && (
+            <div className="w-full animate-fadeIn">
+              <FindTheNumberBoard
+                gameMode={gameMode}
+                onGameEnd={(w, reason) => {
+                  const durationSec = Math.max(3, Math.round((Date.now() - matchStartTimeRef.current) / 1000));
+                  recordGameResult({
+                    gameType: 'findthenumber',
+                    mode: gameMode,
+                    whiteUsername: currentUser?.username || 'Guest',
+                    blackUsername: gameMode === 'ai' ? 'Computer' : 'Player 2',
+                    winner: w,
+                    reason: reason || 'speed_challenge_win',
+                    moveCount: 26,
+                    durationSeconds: durationSec,
+                  });
+                }}
+              />
+            </div>
+          )}
+
+          {activeBoardGame === 'carrom' && (
+            <div className="w-full animate-fadeIn">
+              <CarromBoard
+                gameMode={gameMode}
+                onGameEnd={(w, reason) => {
+                  const durationSec = Math.max(5, Math.round((Date.now() - matchStartTimeRef.current) / 1000));
+                  recordGameResult({
+                    gameType: 'carrom',
+                    mode: gameMode,
+                    whiteUsername: currentUser?.username || 'Guest',
+                    blackUsername: gameMode === 'ai' ? 'Computer' : 'Player 2',
+                    winner: w,
+                    reason: reason || 'carrom_match_win',
+                    moveCount: 15,
+                    durationSeconds: durationSec,
+                  });
+                }}
+              />
+            </div>
+          )}
+
           {/* Action Row: Reset, Rules, 96 FX Hub & Motion Library */}
           <div className="w-full max-w-[580px] grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
             <button
@@ -1765,8 +1856,18 @@ export default function App() {
       {/* Privacy Policy, Terms & Conditions & App Flow Modal */}
       <PrivacyTermsModal
         isOpen={isPrivacyModalOpen}
-        onClose={() => setIsPrivacyModalOpen(false)}
+        onClose={() => {
+          if (!isCompulsoryPrivacy) {
+            setIsPrivacyModalOpen(false);
+          }
+        }}
         defaultTab={privacyModalTab}
+        isCompulsory={isCompulsoryPrivacy}
+        onAgree={() => {
+          setIsCompulsoryPrivacy(false);
+          setIsPrivacyModalOpen(false);
+          trackGameOpened(activeBoardGame);
+        }}
       />
 
       {/* Social, Community, Quests, Badges & Activity Feed Hub Modal */}

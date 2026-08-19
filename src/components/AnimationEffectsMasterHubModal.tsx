@@ -568,7 +568,7 @@ export function AnimationEffectsMasterHubModal({
                         <option value="Occupying Animation">Occupying Animation</option>
                         <option value="Capture Effect">Capture Effect</option>
                         <option value="Occupying Effect">Occupying Effect</option>
-                        <option value="Cry State">Exclusive Cry State (2,500 PTS)</option>
+                        <option value="Cry State">Exclusive Cry State (+100 PTS Reward)</option>
                       </select>
                     </div>
 
@@ -936,7 +936,7 @@ export function AnimationEffectsMasterHubModal({
                 </div>
               </div>
             ) : activeTab === 'cry' ? (
-              /* TAB: EXCLUSIVE 2,500 PTS CRY STATES FOR 6 CHESS ELEMENTS */
+              /* TAB: EXCLUSIVE 100 PTS CRY STATES FOR 6 CHESS ELEMENTS */
               <div className="space-y-4">
                 {/* Banner */}
                 <div className="bg-gradient-to-r from-[#1a1205] via-[#241708] to-[#120e06] border-2 border-amber-500/40 rounded-3xl p-5 shadow-2xl relative overflow-hidden">
@@ -946,14 +946,14 @@ export function AnimationEffectsMasterHubModal({
                       <div className="flex items-center gap-2">
                         <span className="text-2xl">😭</span>
                         <h3 className="text-lg sm:text-xl font-black text-amber-300 tracking-wide">
-                          EXCLUSIVE 5,000 POINTS CRY ANIMATIONS &amp; EFFECTS
+                          EXCLUSIVE 100 POINTS CRY ANIMATIONS &amp; EFFECTS
                         </h3>
                         <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[10px] shadow-sm">
                           6 ELEMENTS
                         </span>
                       </div>
                       <p className="text-xs text-slate-300 font-medium leading-relaxed">
-                        Every chess element (Pawn, Knight, Bishop, Rook, Queen, King) has an exclusive Cry Animation paired with synthesized acoustic soundwaves and custom GPU particle filters — each valued at exactly <strong className="text-amber-300">5,000 PTS</strong>. Audition their sounds, test their keyframe physics, and equip them to your live match loadouts!
+                        Every chess element (Pawn, Knight, Bishop, Rook, Queen, King) features an exclusive Cry Animation paired with synthesized acoustic soundwaves and custom GPU particle filters. Cry animations and effects only trigger in live play once purchased in the shop, awarding exactly <strong className="text-amber-300">100 PTS</strong> per cry event!
                       </p>
                     </div>
 
@@ -998,8 +998,7 @@ export function AnimationEffectsMasterHubModal({
                             <span className="text-xs font-black text-white">{spec.pieceName}</span>
                           </div>
                           <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400/20 border border-amber-400/50 text-amber-300 text-[10px] font-black">
-                            <span>$</span>
-                            <span>{spec.pointsValue.toLocaleString()} PTS</span>
+                            <span>+{spec.pointsValue} PTS / CRY</span>
                           </div>
                         </div>
 
@@ -1051,8 +1050,10 @@ export function AnimationEffectsMasterHubModal({
                             <span className="font-bold text-amber-300">{spec.effectModifierTitle}</span>
                           </div>
                           <div className="flex items-center justify-between text-slate-400">
-                            <span>CSS Selector:</span>
-                            <span className="font-mono text-[9px] text-cyan-300 truncate max-w-[180px]">{spec.cssSelector}</span>
+                            <span>Status:</span>
+                            <span className={`font-bold ${isOwned ? 'text-emerald-400' : 'text-amber-400'}`}>
+                              {isOwned ? '✓ Purchased & Active' : '🔒 Locked (Purchase Required)'}
+                            </span>
                           </div>
                         </div>
 
@@ -1074,7 +1075,7 @@ export function AnimationEffectsMasterHubModal({
                           <button
                             onClick={() => {
                               triggerPieceCryState(spec.piece, 'e4');
-                              setActivityLog(`😭 Triggered ${spec.pieceName} Cry State (+2,500 PTS) on Live Board!`);
+                              setActivityLog(`😭 Triggered ${spec.pieceName} Cry State (+100 PTS) preview on Live Board!`);
                             }}
                             className="py-2 rounded-xl bg-gradient-to-r from-amber-600/30 to-orange-600/30 hover:from-amber-600/50 hover:to-orange-600/50 text-amber-200 font-bold text-xs border border-amber-400/40 flex items-center justify-center gap-1 transition active:scale-95"
                           >

@@ -384,6 +384,44 @@ export const MultiGameHubModal: React.FC<MultiGameHubModalProps> = ({
         if (onSelectGame) onSelectGame('speed');
       },
     },
+    {
+      id: 'findthenumber-game',
+      category: 'penpaper',
+      title: '17. Find the Number',
+      subtitle: 'Hand Speed & Cross Grid Challenge',
+      description: 'Locate scattered numbers across the hand diagram, circle the target, and sprint-tap the 25-cell cross grid!',
+      badge: 'Speed Challenge 🖐️',
+      badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-400/30',
+      icon: <span className="text-2xl">🖐️</span>,
+      gradient: 'from-cyan-900/40 via-sky-900/20 to-slate-950/50',
+      borderColor: 'border-cyan-500/40 hover:border-cyan-400',
+      actionText: 'Play Find Number',
+      actionIcon: <Zap className="w-4 h-4 fill-current" />,
+      actionBg: 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold',
+      onClick: () => {
+        onClose();
+        if (onSelectGame) onSelectGame('findthenumber');
+      },
+    },
+    {
+      id: 'carrom-board',
+      category: 'board',
+      title: '18. Carrom Board Arena',
+      subtitle: 'Striker Physics & Pocketing Arena',
+      description: 'Classic Points, Freestyle & Disc Pool modes. Slide the striker, pull to aim, and pocket the White, Black & Red Queen pieces!',
+      badge: 'Board & Physics 🥏',
+      badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-400/30',
+      icon: <span className="text-2xl">🥏</span>,
+      gradient: 'from-amber-950/50 via-yellow-950/30 to-slate-950/60',
+      borderColor: 'border-amber-500/40 hover:border-amber-400',
+      actionText: 'Play Carrom Board',
+      actionIcon: <Play className="w-4 h-4 fill-current" />,
+      actionBg: 'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-bold',
+      onClick: () => {
+        onClose();
+        if (onSelectGame) onSelectGame('carrom');
+      },
+    },
   ];
 
   const filteredGames = games.filter((game) => {

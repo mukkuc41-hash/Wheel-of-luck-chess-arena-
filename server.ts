@@ -67,6 +67,12 @@ interface User {
   lastLoginDate?: string;
   dailyStreak?: number;
   rating?: number;
+  gamesOpenedCount?: number;
+  perGameOpenedCount?: Record<string, number>;
+  perGameTimeSeconds?: Record<string, number>;
+  privacyAgreed?: boolean;
+  privacyAgreedAt?: number;
+  accumulatedGameTimeSeconds?: number;
 }
 
 interface MatchRecord {
@@ -254,14 +260,14 @@ function savePersistentGames() {
 }
 
 function updateDailyStreak(user: User): boolean {
-  if (user.isGuest) return false;
+  if (!user) return false;
   const now = new Date();
   const todayStr = now.toISOString().split('T')[0];
 
   if (!user.lastLoginDate) {
     user.lastLoginDate = todayStr;
     user.dailyStreak = 1;
-    savePersistentUsers();
+    if (!user.isGuest) savePersistentUsers();
     return true;
   }
 
@@ -273,15 +279,33 @@ function updateDailyStreak(user: User): boolean {
   const diffTime = Math.abs(now.getTime() - lastDate.getTime());
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-  if (diffDays <= 2) {
+  if (diffDays === 1) {
     user.dailyStreak = (user.dailyStreak || 0) + 1;
   } else {
+    // Missed a day: streak resets to 1 for starting today's session
     user.dailyStreak = 1;
   }
 
   user.lastLoginDate = todayStr;
-  savePersistentUsers();
+  if (!user.isGuest) savePersistentUsers();
   return true;
+}
+
+function calculateCurrentStreak(user?: User | null): number {
+  if (!user || !user.lastLoginDate) return 1;
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  if (user.lastLoginDate === todayStr) {
+    return Math.max(1, user.dailyStreak || 1);
+  }
+  const lastDate = new Date(user.lastLoginDate);
+  const diffTime = Math.abs(now.getTime() - lastDate.getTime());
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  if (diffDays === 1) {
+    return Math.max(1, user.dailyStreak || 1);
+  }
+  // Missed days -> Streak reset to 0 until played today
+  return 0;
 }
 
 // Boot persistent data immediately
@@ -1422,13 +1446,32 @@ app.post('/api/sql/sync', requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-// 5. User Statistics endpoint
-app.get('/api/stats', (req, res) => {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  const user = token ? getUserByToken(token) : null;
-  const username = user?.username || 'Guest';
+// 16 Games Catalog Metadata for Global Telemetry and Profiles
+const ALL_GAMES_METADATA: { id: string; name: string; icon: string }[] = [
+  { id: 'chess', name: 'Chess', icon: '♟️' },
+  { id: 'checkers', name: 'Draughts (Checkers)', icon: '⚪' },
+  { id: 'backgammon', name: 'Backgammon', icon: '🎲' },
+  { id: 'ludo', name: 'Ludo', icon: '🎯' },
+  { id: 'snakes', name: 'Snakes & Ladders', icon: '🐍' },
+  { id: 'gomoku', name: 'Gomoku (Five in a Row)', icon: '⚫' },
+  { id: 'reversi', name: 'Reversi (Othello)', icon: '☯️' },
+  { id: 'connect4', name: 'Connect Four', icon: '🟡' },
+  { id: 'ultimatetictactoe', name: 'Ultimate Tic-Tac-Toe', icon: '❌' },
+  { id: 'dotsandboxes', name: 'Dots and Boxes', icon: '📦' },
+  { id: 'battleship', name: 'Battleship', icon: '🚢' },
+  { id: 'sim', name: 'Sim (Triangle Game)', icon: '🔺' },
+  { id: 'uno', name: 'Uno (Crazy Eights)', icon: '🃏' },
+  { id: 'hearts', name: 'Hearts', icon: '♥️' },
+  { id: 'ginrummy', name: 'Gin Rummy', icon: '🎴' },
+  { id: 'speed', name: 'Speed (Spit)', icon: '⚡' },
+  { id: 'findthenumber', name: 'Find the Number (Hand Speed)', icon: '🖐️' },
+  { id: 'carrom', name: 'Carrom Board Arena', icon: '🥏' },
+];
 
-  const userMatches = deduplicateFinishedGames(
+function computeUserGameStats(user: User | null, username: string, requestedGame: string = 'all') {
+  const reqGame = (requestedGame || 'all').toLowerCase();
+
+  const allUserMatches = deduplicateFinishedGames(
     finishedGames.filter(
       (g) =>
         g.whiteUsername === username ||
@@ -1437,62 +1480,180 @@ app.get('/api/stats', (req, res) => {
     )
   );
 
-  let wins = 0;
-  let losses = 0;
-  let draws = 0;
-  let resigns = 0;
-  let pvpGames = 0;
-  let aiGames = 0;
-  let totalTimeSeconds = 0;
+  const filterMatches = (gType: string) => {
+    if (gType === 'all') return allUserMatches;
+    return allUserMatches.filter(
+      (m) => (m.gameType || 'chess').toLowerCase() === gType.toLowerCase()
+    );
+  };
 
-  userMatches.forEach((m) => {
-    if (m.mode === 'pvp') pvpGames++;
-    if (m.mode === 'ai') aiGames++;
+  const calculateForList = (matches: MatchRecord[], gType: string, gName: string) => {
+    let wins = 0;
+    let losses = 0;
+    let draws = 0;
+    let resigns = 0;
+    let pvpGames = 0;
+    let aiGames = 0;
+    let matchTimeSeconds = 0;
 
-    totalTimeSeconds += m.durationSeconds || (m.moveCount ? m.moveCount * 8 : 60);
+    matches.forEach((m) => {
+      if (m.mode === 'pvp') pvpGames++;
+      if (m.mode === 'ai') aiGames++;
+      matchTimeSeconds += m.durationSeconds || (m.moveCount ? m.moveCount * 8 : 60);
 
-    const isWhite = m.whiteUsername === username || m.whiteToken === user?.token;
-    const isUserResigned =
-      (m.reason === 'resignation' || m.reason === 'resign') &&
-      ((m.winner === 'b' && isWhite) || (m.winner === 'w' && !isWhite));
+      const isWhite = m.whiteUsername === username || m.whiteToken === user?.token;
+      const isUserResigned =
+        (m.reason === 'resignation' || m.reason === 'resign') &&
+        ((m.winner === 'b' && isWhite) || (m.winner === 'w' && !isWhite));
 
-    if (isUserResigned) {
-      resigns++;
-    }
-
-    if (m.winner === 'draw') {
-      draws++;
-    } else {
-      if ((m.winner === 'w' && isWhite) || (m.winner === 'b' && !isWhite)) {
-        wins++;
-      } else {
-        losses++;
+      if (isUserResigned) {
+        resigns++;
       }
+
+      if (m.winner === 'draw') {
+        draws++;
+      } else {
+        if ((m.winner === 'w' && isWhite) || (m.winner === 'b' && !isWhite)) {
+          wins++;
+        } else {
+          losses++;
+        }
+      }
+    });
+
+    let opens = 0;
+    let extraTime = 0;
+    if (gType === 'all') {
+      opens = user?.gamesOpenedCount || 0;
+      extraTime = user?.accumulatedGameTimeSeconds || 0;
+    } else {
+      opens = user?.perGameOpenedCount?.[gType] || 0;
+      extraTime = user?.perGameTimeSeconds?.[gType] || 0;
     }
+
+    // Total Played counts all matches played plus each time a game is open to be counted
+    const totalGames = Math.max(matches.length, matches.length + opens);
+    const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
+    const lossRate = totalGames > 0 ? Math.round((losses / totalGames) * 100) : 0;
+    const drawRate = totalGames > 0 ? Math.round((draws / totalGames) * 100) : 0;
+    const resignRate = totalGames > 0 ? Math.round((resigns / totalGames) * 100) : 0;
+    const totalTimeSeconds = matchTimeSeconds + extraTime;
+    const avgMatchTimeSeconds = totalGames > 0 ? Math.round(totalTimeSeconds / totalGames) : 0;
+
+    return {
+      gameType: gType,
+      gameName: gName,
+      totalGames,
+      wins,
+      losses,
+      draws,
+      resigns,
+      winRate,
+      lossRate,
+      drawRate,
+      resignRate,
+      totalTimeSeconds,
+      avgMatchTimeSeconds,
+      pvpGames,
+      aiGames,
+    };
+  };
+
+  const mainStats = calculateForList(
+    filterMatches(reqGame),
+    reqGame,
+    reqGame === 'all'
+      ? 'All 16 Games'
+      : ALL_GAMES_METADATA.find((g) => g.id === reqGame)?.name || reqGame
+  );
+
+  const perGameStats: Record<string, any> = {};
+  ALL_GAMES_METADATA.forEach((g) => {
+    perGameStats[g.id] = calculateForList(filterMatches(g.id), g.id, g.name);
   });
 
-  const totalGames = userMatches.length;
-  const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
-  const lossRate = totalGames > 0 ? Math.round((losses / totalGames) * 100) : 0;
-  const drawRate = totalGames > 0 ? Math.round((draws / totalGames) * 100) : 0;
-  const resignRate = totalGames > 0 ? Math.round((resigns / totalGames) * 100) : 0;
-  const avgMatchTimeSeconds = totalGames > 0 ? Math.round(totalTimeSeconds / totalGames) : 0;
+  const currentStreak = calculateCurrentStreak(user);
+
+  return {
+    ...mainStats,
+    dailyStreak: currentStreak,
+    privacyAgreed: !!user?.privacyAgreed,
+    privacyAgreedAt: user?.privacyAgreedAt || null,
+    perGameStats,
+  };
+}
+
+// 5. User Statistics endpoint supporting all 16 games & combined
+app.get('/api/stats', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const user = token ? getUserByToken(token) : null;
+  const username = user?.username || 'Guest';
+  const game = (req.query.game as string) || 'all';
+
+  const stats = computeUserGameStats(user, username, game);
+  res.json(stats);
+});
+
+// Endpoint: Track game open event per game and globally
+app.post('/api/stats/game-opened', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '') || req.body?.token;
+  const user = token ? getUserByToken(token) : null;
+  const { gameType } = req.body || {};
+  const gKey = (gameType || 'chess').toLowerCase();
+
+  if (user) {
+    user.gamesOpenedCount = (user.gamesOpenedCount || 0) + 1;
+    user.perGameOpenedCount = user.perGameOpenedCount || {};
+    user.perGameOpenedCount[gKey] = (user.perGameOpenedCount[gKey] || 0) + 1;
+    updateDailyStreak(user);
+    if (!user.isGuest) savePersistentUsers();
+  }
 
   res.json({
-    totalGames,
-    wins,
-    losses,
-    draws,
-    resigns,
-    winRate,
-    lossRate,
-    drawRate,
-    resignRate,
-    pvpGames,
-    aiGames,
-    totalTimeSeconds,
-    avgMatchTimeSeconds,
-    dailyStreak: user?.dailyStreak || 1,
+    success: true,
+    gamesOpenedCount: user?.gamesOpenedCount || 1,
+    perGameOpenedCount: user?.perGameOpenedCount || {},
+    gameType: gKey,
+  });
+});
+
+// Endpoint: Track continuous game time synchronization per game and globally
+app.post('/api/stats/time-sync', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '') || req.body?.token;
+  const user = token ? getUserByToken(token) : null;
+  const addedSeconds = Math.min(3600, Math.max(1, Number(req.body?.addedSeconds || 0)));
+  const { gameType } = req.body || {};
+  const gKey = (gameType || 'chess').toLowerCase();
+
+  if (user && addedSeconds > 0) {
+    user.accumulatedGameTimeSeconds = (user.accumulatedGameTimeSeconds || 0) + addedSeconds;
+    user.perGameTimeSeconds = user.perGameTimeSeconds || {};
+    user.perGameTimeSeconds[gKey] = (user.perGameTimeSeconds[gKey] || 0) + addedSeconds;
+    if (!user.isGuest) savePersistentUsers();
+  }
+
+  res.json({
+    success: true,
+    accumulatedGameTimeSeconds: user?.accumulatedGameTimeSeconds || 0,
+    perGameTimeSeconds: user?.perGameTimeSeconds || {},
+  });
+});
+
+// Endpoint: Record Privacy Policy & Terms Agreement
+app.post('/api/user/privacy-agree', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '') || req.body?.token;
+  const user = token ? getUserByToken(token) : null;
+
+  if (user) {
+    user.privacyAgreed = true;
+    user.privacyAgreedAt = Date.now();
+    if (!user.isGuest) savePersistentUsers();
+  }
+
+  res.json({
+    success: true,
+    privacyAgreed: true,
+    agreedAt: Date.now(),
   });
 });
 
@@ -1738,127 +1899,54 @@ app.get('/api/leaderboard', (req, res) => {
   }
 });
 
-// 5c. User Profile Endpoint
+// 5c. User Profile Endpoint supporting all 16 games
 app.get('/api/users/:username/profile', (req, res) => {
   try {
     const { username } = req.params;
-    const requestedGame = (req.query.game as string) || 'chess';
+    const requestedGame = (req.query.game as string) || 'all';
 
-    // Get leaderboard list for the requested game (or chess default)
-    const leaderboard = getLeaderboardData(requestedGame);
+    // Find user record if registered
+    const userObj = usersByUsername.get(username.toLowerCase());
+    const isOwner = isSiteOwner(username);
 
-    // Find user in leaderboard
-    const userInLeaderboard = leaderboard.find(
-      (u) => u.username.toLowerCase() === username.toLowerCase()
-    );
+    // Compute complete stats across all 16 games
+    const stats = computeUserGameStats(userObj || null, username, requestedGame);
 
-    if (userInLeaderboard) {
-      const rankNum = userInLeaderboard.global_rank || 1;
-      let rankTitle = 'Grandmaster';
+    const rankNum = isOwner ? 1 : (stats.totalGames > 0 ? Math.max(1, 100 - Math.min(99, stats.wins * 2)) : 99);
+    let rankTitle = isOwner ? 'Site Owner & Grandmaster' : 'Bronze';
+    if (!isOwner) {
       if (rankNum === 1) rankTitle = 'Grandmaster';
-      else if (rankNum === 2) rankTitle = 'Master';
-      else if (rankNum === 3) rankTitle = 'Diamond';
-      else if (userInLeaderboard.score >= 1800) rankTitle = 'Master';
-      else if (userInLeaderboard.score >= 1600) rankTitle = 'Diamond';
-      else if (userInLeaderboard.score >= 1400) rankTitle = 'Platinum';
-      else if (userInLeaderboard.score >= 1200) rankTitle = 'Gold';
-      else if (userInLeaderboard.score >= 1000) rankTitle = 'Silver';
-      else rankTitle = 'Bronze';
-
-      const isOwner = isSiteOwner(userInLeaderboard.username);
-      if (isOwner) {
-        rankTitle = 'Site Owner & Grandmaster';
-      }
-
-      const userObj = usersByUsername.get(username.toLowerCase());
-
-      return res.json({
-        username: userInLeaderboard.username,
-        rank_title: rankTitle,
-        rank_number: rankNum,
-        score: userInLeaderboard.score,
-        total_time_seconds: userInLeaderboard.total_time_seconds || 0,
-        times_played: userInLeaderboard.times_played || userInLeaderboard.totalGames || 0,
-        wins: userInLeaderboard.wins || 0,
-        losses: userInLeaderboard.losses || 0,
-        draws: userInLeaderboard.draws || 0,
-        resigns: userInLeaderboard.resigns || 0,
-        isOwner,
-        dailyStreak: userObj?.dailyStreak || 1,
-      });
+      else if (rankNum <= 3) rankTitle = 'Master';
+      else if (stats.wins >= 50) rankTitle = 'Diamond';
+      else if (stats.wins >= 25) rankTitle = 'Platinum';
+      else if (stats.wins >= 10) rankTitle = 'Gold';
+      else if (stats.wins >= 3) rankTitle = 'Silver';
+      else rankTitle = stats.totalGames > 0 ? 'Bronze' : 'Unranked';
     }
 
-    // Check if user exists in usersByToken or finishedGames
-    let matchedUsername = '';
-    usersByToken.forEach((u) => {
-      if (u.username.toLowerCase() === username.toLowerCase()) {
-        matchedUsername = u.username;
-      }
+    const calculatedScore = isOwner ? 2650 : Math.max(1000, 1200 + stats.wins * 25 - stats.losses * 10 + stats.draws * 5);
+
+    return res.json({
+      username,
+      rank_title: rankTitle,
+      rank_number: rankNum,
+      score: calculatedScore,
+      total_time_seconds: stats.totalTimeSeconds,
+      times_played: stats.totalGames,
+      wins: stats.wins,
+      losses: stats.losses,
+      draws: stats.draws,
+      resigns: stats.resigns,
+      winRate: stats.winRate,
+      lossRate: stats.lossRate,
+      drawRate: stats.drawRate,
+      resignRate: stats.resignRate,
+      avg_match_time_seconds: stats.avgMatchTimeSeconds,
+      dailyStreak: stats.dailyStreak,
+      isOwner,
+      gameType: requestedGame,
+      perGameStats: stats.perGameStats,
     });
-
-    if (!matchedUsername) {
-      finishedGames.forEach((m) => {
-        if (m.whiteUsername && m.whiteUsername.toLowerCase() === username.toLowerCase()) {
-          matchedUsername = m.whiteUsername;
-        }
-        if (m.blackUsername && m.blackUsername.toLowerCase() === username.toLowerCase()) {
-          matchedUsername = m.blackUsername;
-        }
-      });
-    }
-
-    if (matchedUsername || username.length > 0) {
-      const targetUser = matchedUsername || username;
-      const userMatches = finishedGames.filter(
-        (m) =>
-          m.whiteUsername?.toLowerCase() === targetUser.toLowerCase() ||
-          m.blackUsername?.toLowerCase() === targetUser.toLowerCase()
-      );
-
-      let wins = 0;
-      let losses = 0;
-      let draws = 0;
-      let resigns = 0;
-      let total_time_seconds = 0;
-
-      userMatches.forEach((m) => {
-        const isWhite = m.whiteUsername?.toLowerCase() === targetUser.toLowerCase();
-        total_time_seconds += m.durationSeconds || (m.moveCount ? m.moveCount * 8 : 120);
-        if (m.winner === 'draw') {
-          draws++;
-        } else {
-          const isWinner = (m.winner === 'w' && isWhite) || (m.winner === 'b' && !isWhite);
-          if (isWinner) wins++;
-          else losses++;
-        }
-        if (m.reason === 'resignation' || m.reason === 'resign') {
-          const isResigned = (m.winner === 'b' && isWhite) || (m.winner === 'w' && !isWhite);
-          if (isResigned) resigns++;
-        }
-      });
-
-      const times_played = userMatches.length;
-      const score = Math.max(0, 1200 + wins * 25 - losses * 10 + draws * 5);
-      const userObj = usersByUsername.get(targetUser.toLowerCase());
-      const isOwner = isSiteOwner(targetUser);
-
-      return res.json({
-        username: targetUser,
-        rank_title: isOwner ? 'Site Owner & Grandmaster' : (times_played > 0 ? 'Gold' : 'Unranked'),
-        rank_number: isOwner ? 1 : (times_played > 0 ? 12 : 0),
-        score: isOwner ? Math.max(score, 2650) : (times_played > 0 ? score : 1000),
-        total_time_seconds,
-        times_played,
-        wins,
-        losses,
-        draws,
-        resigns,
-        isOwner,
-        dailyStreak: userObj?.dailyStreak || 1,
-      });
-    }
-
-    return res.status(404).json({ error: 'User not found' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error fetching profile data' });
@@ -1879,17 +1967,18 @@ app.get('/sitemap.xml', (req, res) => {
 </urlset>`);
 });
 
-// 6. User Match History endpoint
+// 6. User Match History endpoint with game filter
 app.get('/api/games/history', (req, res) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
   const user = token ? getUserByToken(token) : null;
   const username = user?.username;
+  const requestedGame = (req.query.game as string) || 'all';
 
   if (!username) {
     return res.json([]);
   }
 
-  const userMatches = deduplicateFinishedGames(
+  let userMatches = deduplicateFinishedGames(
     finishedGames.filter(
       (g) =>
         g.whiteUsername === username ||
@@ -1897,6 +1986,12 @@ app.get('/api/games/history', (req, res) => {
         (user?.token && (g.whiteToken === user.token || g.blackToken === user.token))
     )
   );
+
+  if (requestedGame && requestedGame !== 'all') {
+    userMatches = userMatches.filter(
+      (g) => (g.gameType || 'chess').toLowerCase() === requestedGame.toLowerCase()
+    );
+  }
 
   // Return sorted most recent first
   const sorted = [...userMatches].sort((a, b) => b.createdAt - a.createdAt);
