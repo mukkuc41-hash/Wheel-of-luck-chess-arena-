@@ -73,12 +73,7 @@ import { GoogleConnectModal } from './components/GoogleConnectModal';
 import { telemetryEngine } from './utils/telemetryEngine';
 import { evaluateBoard } from './utils/evalEngine';
 import { detectOpening } from './utils/openingBook';
-import {
-  recordPlayerCaptureForHatrick,
-  updateQuestProgress,
-  handleGameLoss,
-  triggerPenaltyVisualAlert,
-} from './utils/pointsManager';
+import { recordPlayerCaptureForHatrick, updateQuestProgress } from './utils/pointsManager';
 
 import { RotateCcw, BookOpen, Wand2, ShieldAlert, Flame, Sliders, History, Sparkles } from 'lucide-react';
 import { layoutToFen } from './utils/variantManager';
@@ -436,11 +431,6 @@ export default function App() {
       setIsGameActive(false);
       setGameResult({ winner: data.winner, reason: data.reason as any });
       soundFx.playGameOver(data.winner !== null && data.winner !== 'draw');
-
-      // Check if current player lost in PvP match
-      if (data.winner !== 'draw' && myPvPColor && myPvPColor !== 'spectator' && data.winner !== myPvPColor) {
-        handleGameLoss();
-      }
     });
 
     socket.on('chat:message', (msg: ChatMessage) => {
@@ -639,9 +629,6 @@ export default function App() {
           setGameResult({ winner: winnerRes, reason: 'checkmate' });
           if (isPlayerTurn && winnerRes === moveResult.color) {
             updateQuestProgress('win', 1);
-          } else {
-            // Player lost by checkmate: trigger global 10,000 PTS loss penalty
-            handleGameLoss();
           }
         } else if (chess.isStalemate()) {
           isGameOver = true;
@@ -715,15 +702,7 @@ export default function App() {
       winner: loserColor === 'w' ? 'b' : 'w',
       reason: 'timeout',
     });
-
-    const isUserLoss =
-      (gameMode === 'ai' && loserColor === orientation) ||
-      (gameMode === 'pvp' && loserColor === myPvPColor);
-
-    if (isUserLoss) {
-      handleGameLoss();
-    }
-  }, [gameMode, orientation, myPvPColor]);
+  }, []);
 
   // Reset Game
   const resetGame = (forceClassical: boolean | React.MouseEvent = false) => {
@@ -804,7 +783,6 @@ export default function App() {
       winner: activeTurn === 'w' ? 'b' : 'w',
       reason: 'resignation',
     });
-    handleGameLoss();
 
     if (gameMode === 'pvp' && activeRoomId) {
       const socket = socketService.getSocket();
@@ -993,7 +971,7 @@ export default function App() {
       {/* Main Content Layout */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 items-start">
         {/* Left Column: Board & Controls */}
-        <div className="engine-container flex flex-col items-center gap-3 w-full">
+        <div className="flex flex-col items-center gap-3 w-full">
           {/* Classic Board Games Selector Tabs */}
           <div className="w-full">
             <GameBarSelector
@@ -1449,11 +1427,6 @@ export default function App() {
           moveCount={moveRecords.length}
           onNewGame={resetGame}
           onReviewBoard={() => setGameResult({ winner: null, reason: null })}
-          isPlayerLoss={
-            gameResult.winner !== 'draw' &&
-            ((gameMode === 'ai' && gameResult.winner !== orientation) ||
-             (gameMode === 'pvp' && myPvPColor !== 'spectator' && gameResult.winner !== myPvPColor))
-          }
         />
       )}
 

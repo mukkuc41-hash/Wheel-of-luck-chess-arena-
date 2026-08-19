@@ -36,8 +36,6 @@ import {
   getActiveRandomQuests,
   checkDailyWheelStatus,
   resetAllPurchasesAndPoints,
-  getSeriesState,
-  SeriesState,
 } from '../utils/pointsManager';
 import {
   MASTER_96_CATALOG,
@@ -197,7 +195,6 @@ export function AnimationEffectsMasterHubModal({
   const [hatrickData, setHatrickData] = useState(() => getHatrickState());
   const [wheelStatus, setWheelStatus] = useState(() => checkDailyWheelStatus());
   const [activeQuests, setActiveQuests] = useState(() => getActiveRandomQuests());
-  const [seriesState, setSeriesState] = useState<SeriesState>(() => getSeriesState());
 
   // Sandbox State
   const [sandboxPiece, setSandboxPiece] = useState<'p' | 'n' | 'b' | 'r' | 'q' | 'k'>('r');
@@ -213,7 +210,6 @@ export function AnimationEffectsMasterHubModal({
       setHatrickData(getHatrickState());
       setWheelStatus(checkDailyWheelStatus());
       setActiveQuests(getActiveRandomQuests());
-      setSeriesState(getSeriesState());
     };
 
     refreshData();
@@ -221,18 +217,15 @@ export function AnimationEffectsMasterHubModal({
     const handlePointsUpdate = () => refreshData();
     const handleQuestsUpdate = () => refreshData();
     const handleHatrickUpdate = () => refreshData();
-    const handleSeriesUpdate = () => refreshData();
 
     window.addEventListener('chess_points_updated', handlePointsUpdate);
     window.addEventListener('chess_quests_updated', handleQuestsUpdate);
     window.addEventListener('chess_hatrick_achieved', handleHatrickUpdate);
-    window.addEventListener('chess_series_state_updated', handleSeriesUpdate);
 
     return () => {
       window.removeEventListener('chess_points_updated', handlePointsUpdate);
       window.removeEventListener('chess_quests_updated', handleQuestsUpdate);
       window.removeEventListener('chess_hatrick_achieved', handleHatrickUpdate);
-      window.removeEventListener('chess_series_state_updated', handleSeriesUpdate);
     };
   }, [isOpen]);
 
@@ -455,22 +448,6 @@ export function AnimationEffectsMasterHubModal({
                 <div className="text-left">
                   <div className="text-[10px] text-slate-400 font-bold leading-none">Hatrick Victory</div>
                   <div className="text-[11px] text-[#2ecc71] font-black leading-none mt-0.5">+2,000 PTS</div>
-                </div>
-              </div>
-
-              {/* 16-Game Series Engine & Loss Penalty Indicator */}
-              <div
-                className="bg-[#180909] border border-red-500/40 px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs shadow-sm"
-                title="16-Game Series Engine: Any match loss deducts 10,000 PTS penalty"
-              >
-                <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-red-600 to-rose-700 flex items-center justify-center text-[10px] text-white">
-                  ⚠️
-                </div>
-                <div className="text-left">
-                  <div className="text-[10px] text-red-300 font-bold leading-none">
-                    Series: {Math.min(seriesState.gamesPlayed, 16)}/16
-                  </div>
-                  <div className="text-[11px] text-red-400 font-black leading-none mt-0.5">-10K on Loss</div>
                 </div>
               </div>
 
