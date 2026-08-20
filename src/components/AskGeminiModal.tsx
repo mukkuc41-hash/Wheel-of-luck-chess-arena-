@@ -154,14 +154,6 @@ const GAME_AI_CONFIGS: Record<
       { label: 'Stuck Pile Reset', query: 'When should we trigger a dual FLIP reset?', icon: <ShieldAlert className="w-3.5 h-3.5 text-orange-400" /> },
     ],
   },
-  findthenumber: {
-    title: 'Find Number AI',
-    badge: 'Scan & Speed Coach',
-    presets: [
-      { label: 'Scan Technique', query: 'What is the fastest optical strategy to find numbers on the hand?', icon: <Target className="w-3.5 h-3.5 text-cyan-400" /> },
-      { label: 'Grid Burst', query: 'How can I sprint-tap all 25 cross grid cells in sub-3 seconds?', icon: <Zap className="w-3.5 h-3.5 text-yellow-400" /> },
-    ],
-  },
   carrom: {
     title: 'Carrom Physics AI',
     badge: 'Striker Master',

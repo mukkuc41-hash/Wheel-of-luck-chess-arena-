@@ -6,12 +6,13 @@ import { GameOptionsControlPanel } from './GameOptionsControlPanel';
 
 interface HeartsBoardProps {
   gameMode?: 'pvp' | 'ai' | 'local';
+  onGameEnd?: (winner: 'w' | 'b' | 'draw', reason?: string) => void;
 }
 
 type Suit = '♠' | '♥' | '♦' | '♣';
 type Card = { id: string; suit: Suit; value: number; rankStr: string };
 
-export const HeartsBoard: React.FC<HeartsBoardProps> = ({ gameMode: initialMode = 'ai' }) => {
+export const HeartsBoard: React.FC<HeartsBoardProps> = ({ gameMode: initialMode = 'ai', onGameEnd }) => {
   const SUITS: Suit[] = ['♠', '♥', '♦', '♣'];
   const RANKS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
 
@@ -56,6 +57,15 @@ export const HeartsBoard: React.FC<HeartsBoardProps> = ({ gameMode: initialMode 
   const [roundEnded, setRoundEnded] = useState<boolean>(false);
   const [winner, setWinner] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState<string>('Follow suit led if possible. Avoid Hearts & Queen of Spades!');
+  const hasRecordedRef = React.useRef(false);
+
+  useEffect(() => {
+    if (winner && onGameEnd && !hasRecordedRef.current) {
+      hasRecordedRef.current = true;
+      const winnerCode = winner.includes('You') ? 'w' : 'b';
+      onGameEnd(winnerCode, 'hearts_moon_shoot_penalty');
+    }
+  }, [winner, onGameEnd]);
 
   const setupRound = () => {
     const deck = createDeck();

@@ -1,31 +1,23 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   RotateCcw,
-  Trophy,
-  Play,
   Volume2,
   VolumeX,
-  Target,
-  Bot,
-  User,
-  Users,
-  Sparkles,
-  Zap,
   HelpCircle,
   Clock,
-  ShieldAlert,
-  ArrowRight,
-  Flame,
-  Sliders,
-  Award,
+  Sparkles,
+  Zap,
+  BookOpen,
+  Copy,
+  Check,
+  Code,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { soundFx } from '../utils/audio';
-import { GameOptionsControlPanel } from './GameOptionsControlPanel';
 
-export type CarromGameMode = 'classic' | 'freestyle' | 'discpool';
+export type CarromGameMode = 'classic' | 'points' | 'freestyle';
 export type CarromOpponent = 'ai' | 'local' | 'solo';
-export type CarromPieceLayout = 'tournament' | 'compact';
+export type CarromPieceLayout = 'tournament' | 'standard';
 
 interface CarromPiece {
   id: number;
@@ -39,7 +31,16 @@ interface CarromPiece {
   points: number;
   active: boolean;
   pocketedBy?: 1 | 2;
-  sinkProgress?: number; // 0 to 1 for pocket suction animation
+  sinkProgress?: number;
+}
+
+interface CollisionFlash {
+  x: number;
+  y: number;
+  radius: number;
+  maxRadius: number;
+  alpha: number;
+  color: string;
 }
 
 interface StrikerState {
@@ -72,6 +73,9 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
   const [pieceLayout, setPieceLayout] = useState<CarromPieceLayout>('tournament');
   const [soundActive, setSoundActive] = useState<boolean>(true);
   const [showGuideModal, setShowGuideModal] = useState<boolean>(false);
+  const [vfxEnabled, setVfxEnabled] = useState<boolean>(true);
+  const [quickPowerSelected, setQuickPowerSelected] = useState<number>(85);
+  const [strikerPercent, setStrikerPercent] = useState<number>(85);
 
   // Match State
   const [player1Score, setPlayer1Score] = useState<number>(0);
@@ -82,17 +86,443 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
   const [matchStatusText, setMatchStatusText] = useState<string>(
     'Player 1 Turn: Slide striker on baseline, pull back to aim & strike!'
   );
-  const [foulOccurred, setFoulOccurred] = useState<string | null>(null);
-  const [shotCount, setShotCount] = useState<number>(0);
   const [gameTimeSeconds, setGameTimeSeconds] = useState<number>(0);
   const [isGameRunning, setIsGameRunning] = useState<boolean>(false);
   const [comboCount, setComboCount] = useState<number>(0);
+  const [fxHubPulse, setFxHubPulse] = useState<boolean>(false);
+  const [copiedSnippet, setCopiedSnippet] = useState<boolean>(false);
+
+  const copyStandaloneCode = () => {
+    const htmlCode = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real Carrom Arena - Final Striker & Collision Fix</title>
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --panel-bg: #131c2e;
+      --accent-gold: #f59e0b;
+      --accent-blue: #3b82f6;
+      --text-main: #f8fafc;
+      --border-color: #1e293b;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .panel-bg, .config-toolbar {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      padding: 16px;
+      margin-bottom: 16px;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .board-stage {
+      background: #5c3a21; /* Rich dark mahogany wood frame */
+      border: 14px solid #3d2312;
+      border-radius: 16px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(0,0,0,0.5);
+      position: relative;
+      width: 400px;
+      height: 400px;
+      margin: 0 auto;
+    }
+
+    canvas {
+      background: radial-gradient(circle, #fce4b3 0%, #e6c589 70%, #d4aa65 100%);
+      display: block;
+      margin: 0 auto;
+      border-radius: 4px;
+      touch-action: none;
+    }
+
+    .score-board {
+      display: flex;
+      justify-content: space-between;
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+
+    button {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    button:hover {
+      border-color: var(--accent-gold);
+    }
+
+    .status-msg {
+      text-align: center;
+      color: var(--accent-gold);
+      margin-top: 8px;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="panel-bg">
+    <div class="score-board">
+      <div>Player 1 (White): <span id="p1Score">0</span> PTS</div>
+      <div>Computer (AI): <span id="p2Score">0</span> PTS</div>
+    </div>
+    <div id="gameStatus" class="status-msg">Drag striker on baseline, aim & release!</div>
+  </div>
+
+  <div class="board-stage">
+    <canvas id="carromCanvas" width="400" height="400"></canvas>
+  </div>
+
+  <div class="config-toolbar" style="display: flex; justify-content: space-between; align-items: center;">
+    <button onclick="resetGame()">Reset Board</button>
+    <button onclick="toggleGameMode()">Mode: vs Computer</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('carromCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let p1Score = 0;
+    let p2Score = 0;
+    let gameMode = 'vs-computer';
+    let isAnimating = false;
+    let collisionFlash = null;
+
+    // Dragging & Aiming states
+    let isDragging = false;
+    let dragCurrentX = 0;
+    let dragCurrentY = 0;
+
+    const pockets = [
+      { x: 30, y: 30, radius: 22 },
+      { x: 370, y: 30, radius: 22 },
+      { x: 30, y: 370, radius: 22 },
+      { x: 370, y: 370, radius: 22 }
+    ];
+
+    let pieces = [
+      { x: 200, y: 200, radius: 14, type: 'queen', color: '#dc2626', vx: 0, vy: 0 },
+      { x: 190, y: 190, radius: 12, type: 'white', color: '#f8fafc', vx: 0, vy: 0 },
+      { x: 210, y: 210, radius: 12, type: 'black', color: '#1e293b', vx: 0, vy: 0 },
+      { x: 180, y: 210, radius: 12, type: 'white', color: '#f8fafc', vx: 0, vy: 0 },
+      { x: 220, y: 190, radius: 12, type: 'black', color: '#1e293b', vx: 0, vy: 0 },
+      // Professional Striker placed on bottom baseline
+      { x: 200, y: 330, radius: 20, type: 'striker', color: '#e0e7ff', vx: 0, vy: 0 }
+    ];
+
+    // Pointer controls for smooth dragging along the bottom baseline
+    canvas.addEventListener('pointerdown', (e) => {
+      if (isAnimating) return;
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      let striker = pieces.find(p => p.type === 'striker');
+      if (striker) {
+        let dist = Math.hypot(mouseX - striker.x, mouseY - striker.y);
+        if (dist < striker.radius + 15) {
+          isDragging = true;
+          dragCurrentX = mouseX;
+          dragCurrentY = mouseY;
+        }
+      }
+    });
+
+    canvas.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      const rect = canvas.getBoundingClientRect();
+      dragCurrentX = e.clientX - rect.left;
+      dragCurrentY = e.clientY - rect.top;
+
+      let striker = pieces.find(p => p.type === 'striker');
+      if (striker) {
+        // Constrain striker strictly along the baseline bounds horizontally
+        striker.x = Math.max(110, Math.min(290, dragCurrentX));
+      }
+    });
+
+    canvas.addEventListener('pointerup', () => {
+      if (!isDragging) return;
+      isDragging = false;
+
+      let striker = pieces.find(p => p.type === 'striker');
+      if (striker) {
+        // Pull-back vector calculation to push coins forward
+        let dx = striker.x - dragCurrentX;
+        let dy = striker.y - dragCurrentY;
+        let powerMultiplier = 0.28;
+
+        striker.vx = dx * powerMultiplier;
+        striker.vy = dy * powerMultiplier;
+
+        if (Math.abs(striker.vx) > 0.5 || Math.abs(striker.vy) > 0.5) {
+          isAnimating = true;
+          document.getElementById('gameStatus').innerText = "Shot executed!";
+        }
+      }
+    });
+
+    function drawBoard() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw Pockets
+      pockets.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#1e1b18';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#3d2312';
+        ctx.stroke();
+        ctx.closePath();
+      });
+
+      // Center Circle
+      ctx.beginPath();
+      ctx.arc(200, 200, 35, 0, Math.PI * 2);
+      ctx.strokeStyle = '#d4aa65';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.closePath();
+
+      // Draw Baseline Guide & Aiming Line when dragging
+      if (isDragging) {
+        let striker = pieces.find(p => p.type === 'striker');
+        if (striker) {
+          ctx.beginPath();
+          ctx.moveTo(striker.x, striker.y);
+          ctx.lineTo(striker.x + (striker.x - dragCurrentX) * 2.5, striker.y + (striker.y - dragCurrentY) * 2.5);
+          ctx.strokeStyle = 'rgba(245, 158, 11, 0.8)';
+          ctx.lineWidth = 3;
+          ctx.setLineDash([5, 5]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.closePath();
+        }
+      }
+
+      // Draw All Game Pieces & Authentic Carrom Striker Style
+      pieces.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = p.type === 'striker' ? '#1e3a8a' : '#000000';
+        ctx.stroke();
+        ctx.closePath();
+
+        // Render iconic double-ring aesthetic for the Carrom Striker
+        if (p.type === 'striker') {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius * 0.55, 0, Math.PI * 2);
+          ctx.strokeStyle = '#3b82f6';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.closePath();
+        }
+      });
+
+      // Collision Visual Spark Effect
+      if (collisionFlash) {
+        ctx.beginPath();
+        ctx.arc(collisionFlash.x, collisionFlash.y, collisionFlash.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.9)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.closePath();
+        collisionFlash.radius += 4;
+        if (collisionFlash.radius > 28) collisionFlash = null;
+      }
+    }
+
+    function updatePhysics() {
+      if (!isAnimating) return;
+
+      let moving = false;
+
+      // Friction & Motion Update
+      pieces.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= 0.985;
+        p.vy *= 0.985;
+
+        // Wall Bounces
+        if (p.x - p.radius < 20) { p.x = 20 + p.radius; p.vx *= -1; triggerFlash(p.x, p.y); }
+        if (p.x + p.radius > canvas.width - 20) { p.x = canvas.width - 20 - p.radius; p.vx *= -1; triggerFlash(p.x, p.y); }
+        if (p.y - p.radius < 20) { p.y = 20 + p.radius; p.vy *= -1; triggerFlash(p.x, p.y); }
+        if (p.y + p.radius > canvas.height - 20) { p.y = canvas.height - 20 - p.radius; p.vy *= -1; triggerFlash(p.x, p.y); }
+
+        if (Math.abs(p.vx) > 0.15 || Math.abs(p.vy) > 0.15) {
+          moving = true;
+        } else {
+          p.vx = 0;
+          p.vy = 0;
+        }
+      });
+
+      // Robust Elastic Piece-to-Piece Collisions (Striker pushing coins forward)
+      for (let i = 0; i < pieces.length; i++) {
+        for (let j = i + 1; j < pieces.length; j++) {
+          let p1 = pieces[i];
+          let p2 = pieces[j];
+          let dx = p2.x - p1.x;
+          let dy = p2.y - p1.y;
+          let dist = Math.hypot(dx, dy);
+          let minDist = p1.radius + p2.radius;
+
+          if (dist < minDist) {
+            let overlap = minDist - dist;
+            let nx = dx / dist;
+            let ny = dy / dist;
+
+            // Separate overlapping elements smoothly
+            p1.x -= nx * overlap * 0.5;
+            p1.y -= ny * overlap * 0.5;
+            p2.x += nx * overlap * 0.5;
+            p2.y += ny * overlap * 0.5;
+
+            // Momentum transfer exchange
+            let kx = p1.vx - p2.vx;
+            let ky = p1.vy - p2.vy;
+            let p = 2 * (nx * kx + ny * ky) / 2;
+
+            p1.vx -= p * nx;
+            p1.vy -= p * ny;
+            p2.vx += p * nx;
+            p2.vy += p * ny;
+
+            triggerFlash((p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
+          }
+        }
+      }
+
+      checkPockets();
+
+      // Motion Complete: Reset striker back to baseline (guarantees it never vanishes)
+      if (!moving) {
+        isAnimating = false;
+        let striker = pieces.find(p => p.type === 'striker');
+        if (!striker) {
+          pieces.push({ x: 200, y: 330, radius: 20, type: 'striker', color: '#e0e7ff', vx: 0, vy: 0 });
+        } else {
+          striker.x = 200;
+          striker.y = 330;
+          striker.vx = 0;
+          striker.vy = 0;
+        }
+
+        if (gameMode === 'vs-computer') {
+          triggerAITurn();
+        }
+      }
+    }
+
+    function triggerFlash(x, y) {
+      collisionFlash = { x, y, radius: 6 };
+    }
+
+    function checkPockets() {
+      pieces.forEach((piece, index) => {
+        if (piece.type === 'striker') return;
+        pockets.forEach(pocket => {
+          let dist = Math.hypot(piece.x - pocket.x, piece.y - pocket.y);
+          if (dist < pocket.radius) {
+            if (piece.type === 'queen') p1Score += 50;
+            else if (piece.type === 'white') p1Score += 10;
+            else if (piece.type === 'black') p2Score += 10;
+
+            document.getElementById('p1Score').innerText = p1Score;
+            document.getElementById('p2Score').innerText = p2Score;
+            pieces.splice(index, 1);
+          }
+        });
+      });
+    }
+
+    function triggerAITurn() {
+      document.getElementById('gameStatus').innerText = "AI is thinking and aiming...";
+      setTimeout(() => {
+        const targetCoins = pieces.filter(p => p.type === 'black' || p.type === 'queen');
+        const striker = pieces.find(p => p.type === 'striker');
+        if (targetCoins.length === 0 || !striker) return;
+
+        const target = targetCoins[0];
+        striker.x = target.x + (Math.random() * 20 - 10);
+        let angle = Math.atan2(target.y - striker.y, target.x - striker.x);
+
+        striker.vx = Math.cos(angle) * 13;
+        striker.vy = Math.sin(angle) * 13;
+        isAnimating = true;
+        document.getElementById('gameStatus').innerText = "AI shot fired! Your turn.";
+      }, 800);
+    }
+
+    function toggleGameMode() {
+      gameMode = gameMode === 'vs-computer' ? 'local' : 'vs-computer';
+      document.getElementById('gameStatus').innerText = \`Mode: \${gameMode.toUpperCase()}\`;
+    }
+
+    function resetGame() {
+      p1Score = 0;
+      p2Score = 0;
+      document.getElementById('p1Score').innerText = p1Score;
+      document.getElementById('p2Score').innerText = p2Score;
+      isAnimating = false;
+      pieces = [
+        { x: 200, y: 200, radius: 14, type: 'queen', color: '#dc2626', vx: 0, vy: 0 },
+        { x: 190, y: 190, radius: 12, type: 'white', color: '#f8fafc', vx: 0, vy: 0 },
+        { x: 210, y: 210, radius: 12, type: 'black', color: '#1e293b', vx: 0, vy: 0 },
+        { x: 180, y: 210, radius: 12, type: 'white', color: '#f8fafc', vx: 0, vy: 0 },
+        { x: 220, y: 190, radius: 12, type: 'black', color: '#1e293b', vx: 0, vy: 0 },
+        { x: 200, y: 330, radius: 20, type: 'striker', color: '#e0e7ff', vx: 0, vy: 0 }
+      ];
+      document.getElementById('gameStatus').innerText = "Board reset successfully.";
+    }
+
+    function loop() {
+      updatePhysics();
+      drawBoard();
+      requestAnimationFrame(loop);
+    }
+
+    loop();
+  </script>
+</body>
+</html>`;
+    navigator.clipboard.writeText(htmlCode);
+    setCopiedSnippet(true);
+    setTimeout(() => setCopiedSnippet(false), 2500);
+  };
 
   // Canvas Refs & Dimensions
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const BOARD_SIZE = 500; // Internal coordinate grid
-  const POCKET_RADIUS = 26;
-  const CORNER_OFFSET = 38;
+  const BOARD_SIZE = 440; // Internal coordinate grid matching user template
+  const POCKET_RADIUS = 24;
+  const CORNER_OFFSET = 34;
 
   // Board Pockets
   const POCKETS = [
@@ -103,26 +533,27 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
   ];
 
   // Baseline Boundaries
-  const BASELINE_Y_P1 = 430;
-  const BASELINE_Y_P2 = 70;
-  const BASELINE_MIN_X = 90;
-  const BASELINE_MAX_X = 410;
+  const BASELINE_Y_P1 = 378;
+  const BASELINE_Y_P2 = 62;
+  const BASELINE_MIN_X = 75;
+  const BASELINE_MAX_X = 365;
 
   // Live Physics State in Ref
   const strikerRef = useRef<StrikerState>({
-    x: 250,
+    x: BASELINE_MIN_X + ((BASELINE_MAX_X - BASELINE_MIN_X) * 85) / 100,
     y: BASELINE_Y_P1,
     baseY: BASELINE_Y_P1,
     vx: 0,
     vy: 0,
-    radius: 17,
+    radius: 15,
     active: true,
     isAiming: false,
-    aimAngle: -Math.PI / 2, // Aim straight up initially
-    aimPower: 50,
+    aimAngle: -Math.PI / 2,
+    aimPower: 85,
   });
 
   const piecesRef = useRef<CarromPiece[]>([]);
+  const collisionFlashesRef = useRef<CollisionFlash[]>([]);
   const isSimulatingRef = useRef<boolean>(false);
   const pointerDragRef = useRef<{
     isDraggingPosition: boolean;
@@ -140,11 +571,25 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
     currentY: 0,
   });
 
+  const triggerCollisionFlash = (x: number, y: number, color = 'rgba(245, 158, 11, 0.9)') => {
+    if (collisionFlashesRef.current.length > 12) {
+      collisionFlashesRef.current.shift();
+    }
+    collisionFlashesRef.current.push({
+      x,
+      y,
+      radius: 6,
+      maxRadius: 28,
+      alpha: 1,
+      color,
+    });
+  };
+
   const animationFrameIdRef = useRef<number | null>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const piecePocketedThisShotRef = useRef<CarromPiece[]>([]);
 
-  // Synthesize Sound Effects
+  // Sound synthesis
   const playCarromSound = (type: 'strike' | 'clack' | 'pocket' | 'foul' | 'win') => {
     if (!soundActive) return;
     try {
@@ -164,11 +609,10 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
       const pieces: CarromPiece[] = [];
       const cx = BOARD_SIZE / 2;
       const cy = BOARD_SIZE / 2;
-      const pieceRadius = 12.5;
-
+      const pieceRadius = 11;
       let pieceId = 1;
 
-      // Center Red Queen (25 points)
+      // Center Red Queen (25 points in Classic, 3 in Points, 50 in Freestyle)
       pieces.push({
         id: pieceId++,
         x: cx,
@@ -176,14 +620,14 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
         vx: 0,
         vy: 0,
         radius: pieceRadius,
-        color: '#dc2626', // Vibrant Red
+        color: '#dc2626',
         type: 'queen',
-        points: 25,
+        points: carromFormat === 'classic' ? 25 : carromFormat === 'points' ? 3 : 50,
         active: true,
       });
 
       // Inner Ring of 6 Pieces (alternating White & Black)
-      const innerDist = 27;
+      const innerDist = 24;
       for (let i = 0; i < 6; i++) {
         const angle = (i * Math.PI) / 3;
         const isWhite = i % 2 === 0;
@@ -194,19 +638,39 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
           vx: 0,
           vy: 0,
           radius: pieceRadius,
-          color: isWhite ? '#fef3c7' : '#1e293b', // Cream White & Obsidian Black
+          color: isWhite ? '#fef3c7' : '#1e293b',
           type: isWhite ? 'white' : 'black',
           points: isWhite ? 10 : 5,
           active: true,
         });
       }
 
-      // If Tournament Layout, add Outer Ring of 12 Pieces
+      // Outer Ring of 12 Pieces if Tournament Layout (19 pcs total)
+      // If Standard Layout: 2 more pieces (9 pcs total)
       if (layout === 'tournament') {
-        const outerDist = 53;
+        const outerDist = 48;
         for (let i = 0; i < 12; i++) {
           const angle = (i * Math.PI) / 6 + Math.PI / 12;
           const isWhite = i % 2 === 1;
+          pieces.push({
+            id: pieceId++,
+            x: cx + Math.cos(angle) * outerDist,
+            y: cy + Math.sin(angle) * outerDist,
+            vx: 0,
+            vy: 0,
+            radius: pieceRadius,
+            color: isWhite ? '#fef3c7' : '#1e293b',
+            type: isWhite ? 'white' : 'black',
+            points: isWhite ? 10 : 5,
+            active: true,
+          });
+        }
+      } else {
+        // Standard (9 pieces total: 1 Queen, 4 White, 4 Black)
+        const outerDist = 46;
+        for (let i = 0; i < 2; i++) {
+          const angle = (i * Math.PI) + Math.PI / 4;
+          const isWhite = i % 2 === 0;
           pieces.push({
             id: pieceId++,
             x: cx + Math.cos(angle) * outerDist,
@@ -224,25 +688,39 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
 
       piecesRef.current = pieces;
     },
-    [pieceLayout]
+    [carromFormat, pieceLayout]
   );
 
-  // Position Striker on Baseline
-  const resetStrikerToBaseline = (player: 1 | 2 = currentPlayer) => {
+  // Position Striker on Baseline based on percentage (10 to 90%)
+  const setStrikerByPercent = (pct: number, player: 1 | 2 = currentPlayer) => {
+    const clampedPct = Math.max(10, Math.min(90, pct));
+    setStrikerPercent(clampedPct);
+    const targetX = BASELINE_MIN_X + ((BASELINE_MAX_X - BASELINE_MIN_X) * clampedPct) / 100;
     const baseY = player === 1 ? BASELINE_Y_P1 : BASELINE_Y_P2;
     const initialAim = player === 1 ? -Math.PI / 2 : Math.PI / 2;
 
+    strikerRef.current.x = targetX;
+    strikerRef.current.y = baseY;
+    strikerRef.current.baseY = baseY;
+    strikerRef.current.aimAngle = initialAim;
+  };
+
+  const resetStrikerToBaseline = (player: 1 | 2 = currentPlayer) => {
+    const baseY = player === 1 ? BASELINE_Y_P1 : BASELINE_Y_P2;
+    const initialAim = player === 1 ? -Math.PI / 2 : Math.PI / 2;
+    const currentX = BASELINE_MIN_X + ((BASELINE_MAX_X - BASELINE_MIN_X) * strikerPercent) / 100;
+
     strikerRef.current = {
-      x: BOARD_SIZE / 2,
+      x: currentX,
       y: baseY,
       baseY: baseY,
       vx: 0,
       vy: 0,
-      radius: 17,
+      radius: 15,
       active: true,
       isAiming: false,
       aimAngle: initialAim,
-      aimPower: 55,
+      aimPower: quickPowerSelected,
     };
   };
 
@@ -257,8 +735,6 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
       setCurrentPlayer(1);
       setQueenCoverPending(null);
       setMatchWinner(null);
-      setFoulOccurred(null);
-      setShotCount(0);
       setGameTimeSeconds(0);
       setIsGameRunning(false);
       setComboCount(0);
@@ -291,78 +767,12 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
     resetMatch();
   }, [resetMatch]);
 
-  // AI Opponent Shot Generation
-  const executeAIShot = useCallback(() => {
-    if (matchWinner || currentPlayer !== 2 || opponentType !== 'ai') return;
-
-    setMatchStatusText('🤖 AI is calculating angle, bank shot and power...');
-
-    setTimeout(() => {
-      const activePieces = piecesRef.current.filter((p) => p.active);
-      if (activePieces.length === 0) return;
-
-      // Target selection: priority to Queen or White/Black pieces based on mode
-      let targetPiece = activePieces[0];
-      if (carromFormat === 'classic') {
-        const blackPieces = activePieces.filter((p) => p.type === 'black');
-        const queen = activePieces.find((p) => p.type === 'queen');
-        if (queenCoverPending === 2 && blackPieces.length > 0) {
-          targetPiece = blackPieces[0];
-        } else if (queen) {
-          targetPiece = queen;
-        } else if (blackPieces.length > 0) {
-          targetPiece = blackPieces[Math.floor(Math.random() * blackPieces.length)];
-        }
-      } else {
-        // Freestyle / Speed: pick closest piece with clear angle to pocket
-        targetPiece = activePieces[Math.floor(Math.random() * activePieces.length)];
-      }
-
-      // Best baseline position for AI (Top baseline)
-      const aiX = Math.max(
-        BASELINE_MIN_X + 20,
-        Math.min(BASELINE_MAX_X - 20, targetPiece.x + (Math.random() * 40 - 20))
-      );
-      strikerRef.current.x = aiX;
-      strikerRef.current.y = BASELINE_Y_P2;
-
-      // Calculate Angle from Striker to Target Piece
-      const dx = targetPiece.x - strikerRef.current.x;
-      const dy = targetPiece.y - strikerRef.current.y;
-      let angle = Math.atan2(dy, dx);
-
-      // Add a slight realistic human jitter based on difficulty
-      angle += (Math.random() - 0.5) * 0.08;
-      const power = 50 + Math.random() * 40;
-
-      // Execute AI Strike
-      const speed = (power / 100) * 16;
-      strikerRef.current.vx = Math.cos(angle) * speed;
-      strikerRef.current.vy = Math.sin(angle) * speed;
-      strikerRef.current.active = false;
-      isSimulatingRef.current = true;
-      piecePocketedThisShotRef.current = [];
-
-      setIsGameRunning(true);
-      setShotCount((c) => c + 1);
-      playCarromSound('strike');
-      setMatchStatusText('🤖 AI released striker!');
-    }, 900);
-  }, [carromFormat, currentPlayer, matchWinner, opponentType, queenCoverPending]);
-
-  // Trigger AI if it's Player 2's turn
-  useEffect(() => {
-    if (currentPlayer === 2 && opponentType === 'ai' && !matchWinner && strikerRef.current.active) {
-      executeAIShot();
-    }
-  }, [currentPlayer, opponentType, matchWinner, executeAIShot]);
-
-  // Fire Striker Shot from User Action
+  // Fire Striker Shot from User or AI Action
   const releaseStriker = (angle: number, power: number) => {
     if (!strikerRef.current.active || isSimulatingRef.current || matchWinner) return;
 
     const clampedPower = Math.max(15, Math.min(100, power));
-    const speed = (clampedPower / 100) * 17; // Physics impulse scale
+    const speed = (clampedPower / 100) * 16;
 
     strikerRef.current.vx = Math.cos(angle) * speed;
     strikerRef.current.vy = Math.sin(angle) * speed;
@@ -372,10 +782,95 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
     piecePocketedThisShotRef.current = [];
 
     setIsGameRunning(true);
-    setShotCount((s) => s + 1);
     playCarromSound('strike');
-    setMatchStatusText(`Shot Released! Speed: ${Math.round(clampedPower)}%`);
+    setMatchStatusText(`Shot Released with ${Math.round(clampedPower)}% Power!`);
   };
+
+  // AI Opponent Shot Generation (System Prompt Compliant)
+  const executeAIShot = useCallback(() => {
+    if (matchWinner || currentPlayer !== 2 || opponentType !== 'ai') return;
+
+    setMatchStatusText('AI is thinking...');
+
+    setTimeout(() => {
+      if (currentPlayer !== 2 || opponentType !== 'ai') return;
+
+      const activePieces = piecesRef.current.filter((p) => p.active);
+      if (activePieces.length === 0) return;
+
+      // 1. Target Priority: Scan board and prioritize Black coins or Queen
+      const blackCoins = activePieces.filter((p) => p.type === 'black');
+      const queen = activePieces.find((p) => p.type === 'queen');
+      const whiteCoins = activePieces.filter((p) => p.type === 'white');
+
+      let target: CarromPiece | null = null;
+
+      if (queenCoverPending === 2 && blackCoins.length > 0) {
+        // Must cover Queen with a black coin
+        target = blackCoins[0];
+      } else if (queen && (Math.random() > 0.3 || blackCoins.length === 0)) {
+        // Prioritize Red Queen if favorable
+        target = queen;
+      } else if (blackCoins.length > 0) {
+        // Prioritize Black coins
+        // Sort by distance to any of the 4 pockets or easiest unobstructed line
+        const sortedBlack = [...blackCoins].sort((a, b) => {
+          const minDistA = Math.min(...POCKETS.map((pkt) => Math.hypot(a.x - pkt.x, a.y - pkt.y)));
+          const minDistB = Math.min(...POCKETS.map((pkt) => Math.hypot(b.x - pkt.x, b.y - pkt.y)));
+          return minDistA - minDistB;
+        });
+        target = sortedBlack[0];
+      } else if (queen) {
+        target = queen;
+      } else if (whiteCoins.length > 0) {
+        // Fallback only if no black or queen coins remain
+        target = whiteCoins[0];
+      } else {
+        target = activePieces[0];
+      }
+
+      if (!target) return;
+
+      // 2. Baseline Alignment with human-like randomized offset
+      const idealX = Math.max(
+        BASELINE_MIN_X,
+        Math.min(BASELINE_MAX_X, target.x + (Math.random() * 20 - 10))
+      );
+      strikerRef.current.x = idealX;
+      strikerRef.current.y = BASELINE_Y_P2;
+
+      // 3. Aiming & Vector Math
+      const dx = target.x - strikerRef.current.x;
+      const dy = target.y - strikerRef.current.y;
+      let angle = Math.atan2(dy, dx);
+
+      // Subtle humanized angle variance (±1.5 degrees)
+      angle += (Math.random() - 0.5) * 0.05;
+
+      // 4. Power Scaling (balanced velocity between 11 and 14)
+      const speed = 11 + Math.random() * 3; // Balanced 11 - 14 velocity multiplier
+      const powerEquivalent = (speed / 16) * 100;
+
+      strikerRef.current.aimAngle = angle;
+      strikerRef.current.aimPower = powerEquivalent;
+      strikerRef.current.vx = Math.cos(angle) * speed;
+      strikerRef.current.vy = Math.sin(angle) * speed;
+      strikerRef.current.active = false;
+      strikerRef.current.isAiming = false;
+      isSimulatingRef.current = true;
+      piecePocketedThisShotRef.current = [];
+
+      setIsGameRunning(true);
+      playCarromSound('strike');
+      setMatchStatusText('AI shot fired! Your turn.');
+    }, 800);
+  }, [currentPlayer, matchWinner, opponentType, queenCoverPending]);
+
+  useEffect(() => {
+    if (currentPlayer === 2 && opponentType === 'ai' && !matchWinner && strikerRef.current.active) {
+      executeAIShot();
+    }
+  }, [currentPlayer, opponentType, matchWinner, executeAIShot]);
 
   // Check End of Turn Outcomes & Scoring
   const evaluateTurnEnd = useCallback(() => {
@@ -384,33 +879,30 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
     let earnedPoints = 0;
 
     // Check if striker pocketed (Foul)
-    let foulMsg = '';
     const strikerY = strikerRef.current.y;
     const isStrikerInPocket = POCKETS.some(
       (pocket) => Math.hypot(strikerRef.current.x - pocket.x, strikerY - pocket.y) < POCKET_RADIUS + 4
     );
 
     if (isStrikerInPocket) {
-      foulMsg = `⚠️ FOUL! Player ${currentPlayer} pocketed the Striker (-5 PTS Penalty)!`;
-      setFoulOccurred(foulMsg);
       playCarromSound('foul');
-
       if (currentPlayer === 1) {
         setPlayer1Score((s) => Math.max(0, s - 5));
       } else {
         setPlayer2Score((s) => Math.max(0, s - 5));
       }
 
-      // Return a previously pocketed piece back to the center circle if any
+      // Return a piece to center
       const pocketedPieces = piecesRef.current.filter((p) => !p.active);
       if (pocketedPieces.length > 0) {
         const returned = pocketedPieces[pocketedPieces.length - 1];
         returned.active = true;
-        returned.x = BOARD_SIZE / 2 + (Math.random() * 20 - 10);
-        returned.y = BOARD_SIZE / 2 + (Math.random() * 20 - 10);
+        returned.x = BOARD_SIZE / 2 + (Math.random() * 16 - 8);
+        returned.y = BOARD_SIZE / 2 + (Math.random() * 16 - 8);
         returned.vx = 0;
         returned.vy = 0;
       }
+      setMatchStatusText(`⚠️ FOUL: Striker pocketed! -5 PTS penalty for Player ${currentPlayer}`);
     }
 
     // Process Carrom Men pocketed
@@ -423,7 +915,7 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
           if (piece.type === 'queen') {
             setQueenCoverPending(currentPlayer);
             earnedPoints += 25;
-            setMatchStatusText(`👑 QUEEN POCKETED (+25 PTS)! Player ${currentPlayer} must cover with a carrom man!`);
+            setMatchStatusText(`👑 QUEEN POCKETED (+25 PTS)! Player ${currentPlayer} must cover next turn.`);
           } else if (piece.type === 'white' && currentPlayer === 1) {
             earnedPoints += 10;
           } else if (piece.type === 'black' && currentPlayer === 2) {
@@ -432,7 +924,6 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
             earnedPoints += 5;
           }
         } else {
-          // Freestyle & Disc Pool
           earnedPoints += piece.points;
         }
       });
@@ -443,7 +934,6 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
         setPlayer2Score((s) => s + earnedPoints);
       }
 
-      // In Carrom: Pocketing your piece keeps your turn!
       switchTurn = false;
       setMatchStatusText(
         `🎯 Great Shot! Player ${currentPlayer} pocketed ${pocketedThisTurn.length} piece(s) (+${earnedPoints} PTS) & keeps turn!`
@@ -451,7 +941,6 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
     } else {
       setComboCount(0);
       if (queenCoverPending === currentPlayer) {
-        // Failed to cover queen -> return queen to center
         const queen = piecesRef.current.find((p) => p.type === 'queen');
         if (queen) {
           queen.active = true;
@@ -460,7 +949,7 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
           queen.vx = 0;
           queen.vy = 0;
           setQueenCoverPending(null);
-          setMatchStatusText(`Queen not covered! Returned to center rosette.`);
+          setMatchStatusText(`Queen not covered! Returned to center circle.`);
         }
       }
     }
@@ -468,7 +957,6 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
     // Check Win Conditions
     const remainingPieces = piecesRef.current.filter((p) => p.active);
     if (remainingPieces.length === 0) {
-      // Board Cleared!
       const p1Final = player1Score + (currentPlayer === 1 ? earnedPoints : 0);
       const p2Final = player2Score + (currentPlayer === 2 ? earnedPoints : 0);
 
@@ -478,8 +966,8 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
 
       setMatchWinner(winnerId);
       playCarromSound('win');
-      const winReason = `Board Cleared! Final: Player 1 (${p1Final}) vs Player 2 (${p2Final})`;
-      setMatchStatusText(`🏆 Match Finished! ${winnerId === 'draw' ? 'Draw Match!' : `Player ${winnerId} Wins!`}`);
+      const winReason = `Carrom Board Cleared! Final Score: Player 1 (${p1Final}) vs Player 2 (${p2Final})`;
+      setMatchStatusText(`🏆 Match Over! ${winnerId === 'draw' ? 'Draw Match!' : `Player ${winnerId} Wins!`}`);
 
       if (onGameEnd) {
         onGameEnd(winnerId === 1 ? 'w' : winnerId === 2 ? 'b' : 'draw', winReason);
@@ -487,14 +975,13 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
       return;
     }
 
-    // Switch turns if needed
     const nextPlayer: 1 | 2 = switchTurn ? (currentPlayer === 1 ? 2 : 1) : currentPlayer;
     setCurrentPlayer(nextPlayer);
     resetStrikerToBaseline(nextPlayer);
 
     if (switchTurn) {
       const nextName = nextPlayer === 2 && opponentType === 'ai' ? '🤖 AI' : `Player ${nextPlayer}`;
-      setMatchStatusText(`${nextName}'s Turn: Slide striker on baseline & aim.`);
+      setMatchStatusText(`${nextName}'s Turn: Slide striker on baseline & pull back to aim.`);
     }
   }, [
     carromFormat,
@@ -513,8 +1000,8 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const FRICTION = 0.984; // Smooth board glide friction
-    const RESTITUTION = 0.92; // Elasticity of piece collisions
+    const FRICTION = 0.984;
+    const RESTITUTION = 0.92;
     const WALL_RESTITUTION = 0.88;
     const MIN_SPEED = 0.08;
 
@@ -540,30 +1027,32 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
             striker.vy = 0;
           }
 
-          // Wall Rebounds for Striker
-          const wallMin = 28;
-          const wallMax = BOARD_SIZE - 28;
+          const wallMin = 24;
+          const wallMax = BOARD_SIZE - 24;
           if (striker.x < wallMin + striker.radius) {
             striker.x = wallMin + striker.radius;
             striker.vx = -striker.vx * WALL_RESTITUTION;
+            triggerCollisionFlash(striker.x, striker.y, '#38bdf8');
             playCarromSound('clack');
           } else if (striker.x > wallMax - striker.radius) {
             striker.x = wallMax - striker.radius;
             striker.vx = -striker.vx * WALL_RESTITUTION;
+            triggerCollisionFlash(striker.x, striker.y, '#38bdf8');
             playCarromSound('clack');
           }
 
           if (striker.y < wallMin + striker.radius) {
             striker.y = wallMin + striker.radius;
             striker.vy = -striker.vy * WALL_RESTITUTION;
+            triggerCollisionFlash(striker.x, striker.y, '#38bdf8');
             playCarromSound('clack');
           } else if (striker.y > wallMax - striker.radius) {
             striker.y = wallMax - striker.radius;
             striker.vy = -striker.vy * WALL_RESTITUTION;
+            triggerCollisionFlash(striker.x, striker.y, '#38bdf8');
             playCarromSound('clack');
           }
 
-          // Check Striker Corner Pockets
           POCKETS.forEach((pocket) => {
             const dist = Math.hypot(striker.x - pocket.x, striker.y - pocket.y);
             if (dist < POCKET_RADIUS + 2) {
@@ -589,36 +1078,39 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
             p.vy = 0;
           }
 
-          // Wall Rebounds
-          const wallMin = 28;
-          const wallMax = BOARD_SIZE - 28;
+          const wallMin = 24;
+          const wallMax = BOARD_SIZE - 24;
           if (p.x < wallMin + p.radius) {
             p.x = wallMin + p.radius;
             p.vx = -p.vx * WALL_RESTITUTION;
+            triggerCollisionFlash(p.x, p.y, p.color === '#dc2626' ? '#ef4444' : '#f59e0b');
             playCarromSound('clack');
           } else if (p.x > wallMax - p.radius) {
             p.x = wallMax - p.radius;
             p.vx = -p.vx * WALL_RESTITUTION;
+            triggerCollisionFlash(p.x, p.y, p.color === '#dc2626' ? '#ef4444' : '#f59e0b');
             playCarromSound('clack');
           }
 
           if (p.y < wallMin + p.radius) {
             p.y = wallMin + p.radius;
             p.vy = -p.vy * WALL_RESTITUTION;
+            triggerCollisionFlash(p.x, p.y, p.color === '#dc2626' ? '#ef4444' : '#f59e0b');
             playCarromSound('clack');
           } else if (p.y > wallMax - p.radius) {
             p.y = wallMax - p.radius;
             p.vy = -p.vy * WALL_RESTITUTION;
+            triggerCollisionFlash(p.x, p.y, p.color === '#dc2626' ? '#ef4444' : '#f59e0b');
             playCarromSound('clack');
           }
 
-          // Pocket Hole Detection
           POCKETS.forEach((pocket) => {
             const dist = Math.hypot(p.x - pocket.x, p.y - pocket.y);
             if (dist < POCKET_RADIUS + 2 && p.active) {
               p.active = false;
               p.vx = 0;
               p.vy = 0;
+              triggerCollisionFlash(pocket.x, pocket.y, '#f59e0b');
               piecePocketedThisShotRef.current.push(p);
             }
           });
@@ -634,7 +1126,6 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
             const minDist = striker.radius + p.radius;
 
             if (dist < minDist && dist > 0) {
-              // Overlap separation
               const nx = dx / dist;
               const ny = dy / dist;
               const overlap = minDist - dist;
@@ -643,18 +1134,18 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
               p.x += nx * overlap * 0.5;
               p.y += ny * overlap * 0.5;
 
-              // Elastic Momentum Exchange (Striker mass = 3, Piece mass = 1)
               const m1 = 2.8;
               const m2 = 1.0;
               const kx = striker.vx - p.vx;
               const ky = striker.vy - p.vy;
-              const pVel = 2 * (nx * kx + ny * ky) / (m1 + m2);
+              const pVel = (2 * (nx * kx + ny * ky)) / (m1 + m2);
 
               striker.vx -= pVel * m2 * nx * RESTITUTION;
               striker.vy -= pVel * m2 * ny * RESTITUTION;
               p.vx += pVel * m1 * nx * RESTITUTION;
               p.vy += pVel * m1 * ny * RESTITUTION;
 
+              triggerCollisionFlash((striker.x + p.x) / 2, (striker.y + p.y) / 2, '#38bdf8');
               playCarromSound('clack');
             }
           });
@@ -690,12 +1181,12 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
               p2.vx += pVel * nx * RESTITUTION;
               p2.vy += pVel * ny * RESTITUTION;
 
+              triggerCollisionFlash((p1.x + p2.x) / 2, (p1.y + p2.y) / 2, '#f59e0b');
               playCarromSound('clack');
             }
           }
         }
 
-        // Check if all motion stopped -> End of Shot
         if (!anyMoving) {
           isSimulatingRef.current = false;
           evaluateTurnEnd();
@@ -705,36 +1196,30 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
       // 2. RENDER BOARD GRAPHICS
       ctx.clearRect(0, 0, BOARD_SIZE, BOARD_SIZE);
 
-      // A. Outer Wooden Border & Bevels
-      ctx.fillStyle = '#451a03'; // Rich dark walnut wood
-      ctx.fillRect(0, 0, BOARD_SIZE, BOARD_SIZE);
-
-      // Inner Playing Board Bed
-      const innerMargin = 26;
-      const innerSize = BOARD_SIZE - innerMargin * 2;
+      // Inner Playing Board Bed with Radial Wood Finish
       const gradient = ctx.createRadialGradient(
         BOARD_SIZE / 2,
         BOARD_SIZE / 2,
-        40,
+        10,
         BOARD_SIZE / 2,
         BOARD_SIZE / 2,
-        BOARD_SIZE / 2
+        BOARD_SIZE * 0.72
       );
-      gradient.addColorStop(0, '#fef08a'); // Warm polished beech wood center
-      gradient.addColorStop(0.65, '#fde047');
-      gradient.addColorStop(1, '#eab308'); // Amber edge shadow
+      gradient.addColorStop(0, '#fce4b3');
+      gradient.addColorStop(0.7, '#e6c589');
+      gradient.addColorStop(1, '#d4aa65');
 
       ctx.fillStyle = gradient;
-      ctx.fillRect(innerMargin, innerMargin, innerSize, innerSize);
+      ctx.fillRect(0, 0, BOARD_SIZE, BOARD_SIZE);
 
-      // Inner Border Line
-      ctx.strokeStyle = '#78350f';
-      ctx.lineWidth = 2.5;
-      ctx.strokeRect(innerMargin + 2, innerMargin + 2, innerSize - 4, innerSize - 4);
+      // Inner border lines
+      ctx.strokeStyle = '#854d0e';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(18, 18, BOARD_SIZE - 36, BOARD_SIZE - 36);
 
-      // B. Diagonal Foul Lines & Corner Arrows
-      ctx.strokeStyle = '#92400e';
-      ctx.lineWidth = 1.5;
+      // Diagonal lines to pockets
+      ctx.strokeStyle = '#a16207';
+      ctx.lineWidth = 1.2;
       POCKETS.forEach((pocket) => {
         ctx.beginPath();
         ctx.moveTo(BOARD_SIZE / 2, BOARD_SIZE / 2);
@@ -742,80 +1227,75 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
         ctx.stroke();
       });
 
-      // C. Center Rosette Circle & Queen Circle
-      ctx.strokeStyle = '#92400e';
-      ctx.lineWidth = 2;
+      // Center Decorative Rosette
+      ctx.strokeStyle = '#854d0e';
+      ctx.lineWidth = 1.8;
       ctx.beginPath();
-      ctx.arc(BOARD_SIZE / 2, BOARD_SIZE / 2, 42, 0, Math.PI * 2);
+      ctx.arc(BOARD_SIZE / 2, BOARD_SIZE / 2, 36, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Outer Decorative Center Ring
       ctx.beginPath();
-      ctx.arc(BOARD_SIZE / 2, BOARD_SIZE / 2, 70, 0, Math.PI * 2);
+      ctx.arc(BOARD_SIZE / 2, BOARD_SIZE / 2, 60, 0, Math.PI * 2);
       ctx.stroke();
 
       // Center Red Queen circle
-      ctx.fillStyle = '#dc262625';
+      ctx.fillStyle = '#dc262622';
       ctx.beginPath();
-      ctx.arc(BOARD_SIZE / 2, BOARD_SIZE / 2, 16, 0, Math.PI * 2);
+      ctx.arc(BOARD_SIZE / 2, BOARD_SIZE / 2, 14, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = '#b91c1c';
       ctx.stroke();
 
-      // D. Baseline Striking Bars (Top & Bottom)
-      const drawBaseline = (y: number, playerLabel: string) => {
-        ctx.strokeStyle = '#92400e';
-        ctx.lineWidth = 2;
-
-        // Dual baseline lines
+      // Baseline Bars
+      const drawBaseline = (y: number) => {
+        ctx.strokeStyle = '#854d0e';
+        ctx.lineWidth = 1.8;
         ctx.beginPath();
-        ctx.moveTo(BASELINE_MIN_X, y - 8);
-        ctx.lineTo(BASELINE_MAX_X, y - 8);
-        ctx.moveTo(BASELINE_MIN_X, y + 8);
-        ctx.lineTo(BASELINE_MAX_X, y + 8);
+        ctx.moveTo(BASELINE_MIN_X, y - 6);
+        ctx.lineTo(BASELINE_MAX_X, y - 6);
+        ctx.moveTo(BASELINE_MIN_X, y + 6);
+        ctx.lineTo(BASELINE_MAX_X, y + 6);
         ctx.stroke();
 
-        // Baseline Circles on ends (Red filled circles)
         const drawBaseCircle = (bx: number) => {
           ctx.fillStyle = '#ef4444';
           ctx.beginPath();
-          ctx.arc(bx, y, 10, 0, Math.PI * 2);
+          ctx.arc(bx, y, 8, 0, Math.PI * 2);
           ctx.fill();
           ctx.strokeStyle = '#78350f';
+          ctx.lineWidth = 1.5;
           ctx.stroke();
         };
         drawBaseCircle(BASELINE_MIN_X);
         drawBaseCircle(BASELINE_MAX_X);
       };
 
-      drawBaseline(BASELINE_Y_P1, 'Player 1');
-      drawBaseline(BASELINE_Y_P2, 'Player 2');
+      drawBaseline(BASELINE_Y_P1);
+      drawBaseline(BASELINE_Y_P2);
 
-      // E. 4 Corner Pockets with Dark Depth & Shadows
+      // 4 Corner Pockets
       POCKETS.forEach((pocket) => {
-        // Deep hole
-        ctx.fillStyle = '#090d16';
+        ctx.fillStyle = '#090b10';
         ctx.beginPath();
         ctx.arc(pocket.x, pocket.y, POCKET_RADIUS, 0, Math.PI * 2);
         ctx.fill();
 
-        // Brass rim
         ctx.strokeStyle = '#ca8a04';
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.arc(pocket.x, pocket.y, POCKET_RADIUS, 0, Math.PI * 2);
         ctx.stroke();
       });
 
-      // F. Draw Active Carrom Pieces
+      // Draw Active Carrom Pieces
       pieces.forEach((p) => {
         if (!p.active) return;
 
         ctx.save();
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
-        ctx.shadowBlur = 6;
-        ctx.shadowOffsetX = 2;
-        ctx.shadowOffsetY = 2;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+        ctx.shadowBlur = 5;
+        ctx.shadowOffsetX = 1.5;
+        ctx.shadowOffsetY = 1.5;
 
         ctx.fillStyle = p.color;
         ctx.beginPath();
@@ -823,10 +1303,9 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
         ctx.fill();
 
         ctx.strokeStyle = p.type === 'white' ? '#d97706' : p.type === 'queen' ? '#fde047' : '#0f172a';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.8;
         ctx.stroke();
 
-        // Center piece indentation/ridge ring
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.radius * 0.45, 0, Math.PI * 2);
         ctx.stroke();
@@ -834,73 +1313,115 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
         ctx.restore();
       });
 
-      // G. Draw Striker
+      // Draw Collision Flashes & Shockwave Rings
+      if (collisionFlashesRef.current.length > 0) {
+        for (let i = collisionFlashesRef.current.length - 1; i >= 0; i--) {
+          const flash = collisionFlashesRef.current[i];
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(flash.x, flash.y, flash.radius, 0, Math.PI * 2);
+          ctx.strokeStyle = flash.color;
+          ctx.globalAlpha = Math.max(0, flash.alpha);
+          ctx.lineWidth = 3;
+          ctx.stroke();
+          ctx.restore();
+
+          flash.radius += 4;
+          flash.alpha -= 0.12;
+
+          if (flash.radius >= flash.maxRadius || flash.alpha <= 0) {
+            collisionFlashesRef.current.splice(i, 1);
+          }
+        }
+      }
+
+      // Draw Striker
       if (striker.active || !isSimulatingRef.current) {
         ctx.save();
-        ctx.shadowColor = 'rgba(56, 189, 248, 0.6)';
-        ctx.shadowBlur = 12;
+        if (vfxEnabled) {
+          ctx.shadowColor = 'rgba(59, 130, 246, 0.6)';
+          ctx.shadowBlur = 10;
+        }
 
-        // Striker body (Cyan Ivory with Golden Ring)
-        const strikerGrad = ctx.createRadialGradient(
-          striker.x - 3,
-          striker.y - 3,
-          2,
-          striker.x,
-          striker.y,
-          striker.radius
-        );
-        strikerGrad.addColorStop(0, '#e0f2fe');
-        strikerGrad.addColorStop(0.7, '#38bdf8');
-        strikerGrad.addColorStop(1, '#0284c7');
-
-        ctx.fillStyle = strikerGrad;
+        // Striker Base
+        ctx.fillStyle = '#e0e7ff';
         ctx.beginPath();
         ctx.arc(striker.x, striker.y, striker.radius, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.strokeStyle = '#0f172a';
+        ctx.strokeStyle = '#1e3a8a';
         ctx.lineWidth = 2.5;
         ctx.stroke();
 
-        // Inner Striker ring
-        ctx.strokeStyle = '#fef08a';
-        ctx.lineWidth = 1.5;
+        // Authentic double-ring aesthetic
         ctx.beginPath();
-        ctx.arc(striker.x, striker.y, striker.radius * 0.5, 0, Math.PI * 2);
+        ctx.arc(striker.x, striker.y, striker.radius * 0.55, 0, Math.PI * 2);
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 2;
         ctx.stroke();
 
         ctx.restore();
 
-        // H. Aiming Trajectory Guide Line & Pull-Back Force Indicator
+        // Aiming Trajectory Guide Line & Power Indicator
         if (striker.isAiming || pointerDragRef.current.isPullingAim) {
           const aimAngle = striker.aimAngle;
           const power = striker.aimPower;
-          const lineLength = 50 + (power / 100) * 110;
+          const lineLength = 40 + (power / 100) * 140;
 
           const targetX = striker.x + Math.cos(aimAngle) * lineLength;
           const targetY = striker.y + Math.sin(aimAngle) * lineLength;
 
-          // Dashed Aim Arrow
           ctx.save();
-          ctx.setLineDash([6, 4]);
-          ctx.strokeStyle = '#ef4444';
+          // Trajectory Forward Line
+          ctx.setLineDash([5, 5]);
+          ctx.strokeStyle = 'rgba(245, 158, 11, 0.85)';
           ctx.lineWidth = 3;
           ctx.beginPath();
           ctx.moveTo(striker.x, striker.y);
           ctx.lineTo(targetX, targetY);
           ctx.stroke();
 
-          // Arrow head
+          // Target reticle / impact ring
           ctx.setLineDash([]);
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(targetX, targetY, 7, 0, Math.PI * 2);
+          ctx.stroke();
+
           ctx.fillStyle = '#ef4444';
           ctx.beginPath();
-          ctx.arc(targetX, targetY, 5, 0, Math.PI * 2);
+          ctx.arc(targetX, targetY, 3.5, 0, Math.PI * 2);
           ctx.fill();
 
-          // Power Percentage Label
+          // Pull-back indicator line
+          if (pointerDragRef.current.isPullingAim) {
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.7)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(striker.x, striker.y);
+            ctx.lineTo(pointerDragRef.current.currentX, pointerDragRef.current.currentY);
+            ctx.stroke();
+
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(pointerDragRef.current.currentX, pointerDragRef.current.currentY, 4, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // Power readout badge
           ctx.fillStyle = '#0f172a';
-          ctx.font = 'bold 11px sans-serif';
-          ctx.fillText(`Power: ${Math.round(power)}%`, striker.x - 28, striker.y + 32);
+          ctx.beginPath();
+          ctx.roundRect ? ctx.roundRect(striker.x - 36, striker.y + 20, 72, 18, 6) : ctx.rect(striker.x - 36, striker.y + 20, 72, 18);
+          ctx.fill();
+          ctx.strokeStyle = '#3b82f6';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          ctx.fillStyle = '#f8fafc';
+          ctx.font = 'bold 10px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(`⚡ ${Math.round(power)}%`, striker.x, striker.y + 33);
 
           ctx.restore();
         }
@@ -916,7 +1437,7 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
         cancelAnimationFrame(animationFrameIdRef.current);
       }
     };
-  }, [POCKETS, playCarromSound, evaluateTurnEnd]);
+  }, [POCKETS, playCarromSound, evaluateTurnEnd, vfxEnabled]);
 
   // Pointer Interaction Handlers for Slider / Drag / Aim
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -934,7 +1455,6 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
     const striker = strikerRef.current;
     const distToStriker = Math.hypot(px - striker.x, py - striker.y);
 
-    // If tapped directly on striker -> start aiming pull
     if (distToStriker <= striker.radius + 15) {
       pointerDragRef.current.isPullingAim = true;
       pointerDragRef.current.startX = px;
@@ -943,8 +1463,10 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
       pointerDragRef.current.currentY = py;
       striker.isAiming = true;
     } else if (Math.abs(py - striker.baseY) < 30 && px >= BASELINE_MIN_X - 15 && px <= BASELINE_MAX_X + 15) {
-      // Tapped baseline -> position striker horizontally
-      striker.x = Math.max(BASELINE_MIN_X, Math.min(BASELINE_MAX_X, px));
+      const clampedX = Math.max(BASELINE_MIN_X, Math.min(BASELINE_MAX_X, px));
+      striker.x = clampedX;
+      const pct = Math.round(((clampedX - BASELINE_MIN_X) / (BASELINE_MAX_X - BASELINE_MIN_X)) * 100);
+      setStrikerPercent(pct);
       pointerDragRef.current.isDraggingPosition = true;
     }
   };
@@ -960,19 +1482,23 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
     const py = (e.clientY - rect.top) * scaleY;
 
     if (pointerDragRef.current.isDraggingPosition) {
-      strikerRef.current.x = Math.max(BASELINE_MIN_X, Math.min(BASELINE_MAX_X, px));
+      const clampedX = Math.max(BASELINE_MIN_X, Math.min(BASELINE_MAX_X, px));
+      strikerRef.current.x = clampedX;
+      const pct = Math.round(((clampedX - BASELINE_MIN_X) / (BASELINE_MAX_X - BASELINE_MIN_X)) * 100);
+      setStrikerPercent(pct);
     } else if (pointerDragRef.current.isPullingAim) {
       pointerDragRef.current.currentX = px;
       pointerDragRef.current.currentY = py;
 
-      // Calculate direction from drag pull
       const dx = pointerDragRef.current.startX - px;
       const dy = pointerDragRef.current.startY - py;
       const pullDist = Math.hypot(dx, dy);
 
       if (pullDist > 5) {
         strikerRef.current.aimAngle = Math.atan2(dy, dx);
-        strikerRef.current.aimPower = Math.min(100, Math.max(20, pullDist * 1.2));
+        const calcPwr = Math.min(100, Math.max(20, pullDist * 1.3));
+        strikerRef.current.aimPower = calcPwr;
+        setQuickPowerSelected(Math.round(calcPwr));
       }
     }
   };
@@ -984,7 +1510,7 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
         pointerDragRef.current.startY - pointerDragRef.current.currentY
       );
 
-      if (pullDist > 12) {
+      if (pullDist > 10) {
         releaseStriker(strikerRef.current.aimAngle, strikerRef.current.aimPower);
       }
     }
@@ -994,57 +1520,69 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
     strikerRef.current.isAiming = false;
   };
 
+  const handleQuickPowerClick = (pwr: number) => {
+    setQuickPowerSelected(pwr);
+    strikerRef.current.aimPower = pwr;
+    if (strikerRef.current.active && !isSimulatingRef.current && !matchWinner) {
+      releaseStriker(strikerRef.current.aimAngle, pwr);
+    }
+  };
+
+  const handle96FxHubTrigger = () => {
+    setFxHubPulse(true);
+    soundFx.playGameOver(true);
+    setTimeout(() => setFxHubPulse(false), 1200);
+  };
+
   return (
-    <div className="w-full flex flex-col items-center gap-4 text-white">
-      {/* Top Banner & Mode Switches */}
-      <div className="w-full max-w-[580px] bg-[#121626]/90 border border-amber-500/30 rounded-3xl p-4 shadow-2xl backdrop-blur-md flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 text-xl shadow-md">
-              🥏
+    <div className="w-full flex justify-center p-2 sm:p-4 text-white font-sans">
+      <div className="w-full max-w-[520px] bg-[#111522] border border-[#242f4c] rounded-[20px] shadow-[0_25px_50px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col box-border">
+        {/* Arena Header */}
+        <div className="bg-[#0d111b] px-4 sm:px-5 py-4 flex justify-between items-center border-b border-[#242f4c]">
+          <div className="flex items-center gap-3">
+            <div className="w-[38px] h-[38px] bg-gradient-to-br from-[#3498db] to-[#f1c40f] rounded-[10px] flex items-center justify-center text-lg shadow-[0_4px_10px_rgba(52,152,219,0.3)]">
+              🎯
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-black text-amber-300">Carrom Board Arena</h2>
-                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-300 text-[10px] font-bold">
-                  {carromFormat.toUpperCase()}
+              <h2 className="m-0 text-base font-bold text-white flex items-center gap-2">
+                Carrom Board Arena{' '}
+                <span className="text-[9px] bg-[#22304a] text-[#f1c40f] px-1.5 py-0.5 rounded uppercase border border-[#34495e] font-semibold">
+                  {carromFormat}
                 </span>
-              </div>
-              <p className="text-xs text-slate-300">Multi-Format Physics Simulation &amp; Striker Arena</p>
+              </h2>
+              <p className="m-0 text-[11px] text-[#8c92a4]">Multi-Format Physics Simulation &amp; Striker Arena</p>
             </div>
           </div>
-
-          {/* Quick Action Buttons */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex gap-2">
             <button
               onClick={() => setSoundActive(!soundActive)}
-              className="p-2 rounded-xl bg-slate-900 border border-white/10 hover:border-amber-400 text-amber-300 transition"
-              title={soundActive ? 'Mute Sound' : 'Enable Sound'}
+              className="bg-[#161c2d] border border-[#242f4c] hover:border-[#3498db] hover:bg-[#222d4a] text-white w-[34px] h-[34px] rounded-[8px] flex items-center justify-center cursor-pointer transition text-sm"
+              title={soundActive ? 'Toggle Sound (Mute)' : 'Toggle Sound (Unmute)'}
             >
-              {soundActive ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              {soundActive ? <Volume2 className="w-4 h-4 text-[#3498db]" /> : <VolumeX className="w-4 h-4 text-[#8c92a4]" />}
             </button>
             <button
               onClick={() => setShowGuideModal(true)}
-              className="p-2 rounded-xl bg-slate-900 border border-white/10 hover:border-amber-400 text-amber-300 transition"
-              title="Rules & Controls"
+              className="bg-[#161c2d] border border-[#242f4c] hover:border-[#3498db] hover:bg-[#222d4a] text-white w-[34px] h-[34px] rounded-[8px] flex items-center justify-center cursor-pointer transition text-sm"
+              title="Help & Info"
             >
-              <HelpCircle className="w-4 h-4" />
+              <HelpCircle className="w-4 h-4 text-[#f1c40f]" />
             </button>
             <button
               onClick={() => resetMatch()}
-              className="px-3 py-1.5 rounded-xl bg-amber-500/20 border border-amber-400 text-amber-200 text-xs font-black flex items-center gap-1 hover:bg-amber-500/30 transition active:scale-95"
+              id="resetMatchBtn"
+              className="bg-[#161c2d] border border-[#242f4c] hover:border-[#3498db] hover:bg-[#222d4a] text-white w-[34px] h-[34px] rounded-[8px] flex items-center justify-center cursor-pointer transition text-sm"
+              title="Reset Arena"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset</span>
+              <RotateCcw className="w-4 h-4 text-[#2ecc71]" />
             </button>
           </div>
         </div>
 
-        {/* Format, Opponent & Layout Selector Chips */}
-        <div className="grid grid-cols-3 gap-2">
-          {/* Format Select */}
+        {/* Config Toolbar */}
+        <div className="px-4 sm:px-5 py-3.5 grid grid-cols-3 gap-2 bg-[#111522] border-b border-[#242f4c]">
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] text-slate-400 font-bold uppercase">Format</span>
+            <label className="text-[9px] uppercase text-[#8c92a4] font-bold tracking-wide">Format</label>
             <select
               value={carromFormat}
               onChange={(e) => {
@@ -1052,17 +1590,16 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
                 setCarromFormat(newF);
                 resetMatch(undefined, newF);
               }}
-              className="bg-slate-900 border border-white/10 text-slate-200 text-xs font-bold rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-amber-400 cursor-pointer"
+              className="bg-[#161c2d] border border-[#242f4c] hover:border-[#3498db] text-white px-2 py-1.5 rounded-[6px] text-[11px] outline-none cursor-pointer w-full box-border"
             >
               <option value="classic">Classic (Points &amp; Queen)</option>
-              <option value="freestyle">Freestyle (Max Score)</option>
-              <option value="discpool">Disc Pool (Speed Run)</option>
+              <option value="points">Points Carrom</option>
+              <option value="freestyle">Freestyle</option>
             </select>
           </div>
 
-          {/* Opponent Mode */}
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] text-slate-400 font-bold uppercase">Opponent</span>
+            <label className="text-[9px] uppercase text-[#8c92a4] font-bold tracking-wide">Opponent</label>
             <select
               value={opponentType}
               onChange={(e) => {
@@ -1070,17 +1607,16 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
                 setOpponentType(opp);
                 resetMatch();
               }}
-              className="bg-slate-900 border border-white/10 text-slate-200 text-xs font-bold rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-amber-400 cursor-pointer"
+              className="bg-[#161c2d] border border-[#242f4c] hover:border-[#3498db] text-white px-2 py-1.5 rounded-[6px] text-[11px] outline-none cursor-pointer w-full box-border"
             >
-              <option value="ai">🤖 vs Computer AI</option>
-              <option value="local">👥 2-Player Pass &amp; Play</option>
-              <option value="solo">🎯 Solo Practice</option>
+              <option value="ai">vs Computer AI</option>
+              <option value="local">2 Player Local</option>
+              <option value="solo">Practice Solo</option>
             </select>
           </div>
 
-          {/* Piece Layout */}
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] text-slate-400 font-bold uppercase">Pieces</span>
+            <label className="text-[9px] uppercase text-[#8c92a4] font-bold tracking-wide">Pieces</label>
             <select
               value={pieceLayout}
               onChange={(e) => {
@@ -1088,198 +1624,251 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
                 setPieceLayout(lay);
                 resetMatch(lay, undefined);
               }}
-              className="bg-slate-900 border border-white/10 text-slate-200 text-xs font-bold rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-amber-400 cursor-pointer"
+              className="bg-[#161c2d] border border-[#242f4c] hover:border-[#3498db] text-white px-2 py-1.5 rounded-[6px] text-[11px] outline-none cursor-pointer w-full box-border"
             >
               <option value="tournament">Tournament (19 Pcs)</option>
-              <option value="compact">Quick Match (7 Pcs)</option>
+              <option value="standard">Standard (9 Pcs)</option>
             </select>
           </div>
         </div>
 
-        {/* Live Match Scoreboard & Turn Display */}
-        <div className="grid grid-cols-2 gap-3 pt-1">
-          {/* Player 1 Card */}
+        {/* Scoreboard Panel */}
+        <div className="px-4 sm:px-5 py-3.5 grid grid-cols-2 gap-3 bg-[#0f131d]">
+          {/* P1 Score Card */}
           <div
-            className={`p-3 rounded-2xl border transition-all ${
+            id="p1Card"
+            className={`bg-[#161c2d] border rounded-[12px] p-3 flex flex-col relative transition-all duration-300 ${
               currentPlayer === 1 && !matchWinner
-                ? 'bg-amber-500/20 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
-                : 'bg-slate-900/60 border-white/5'
+                ? 'bg-[#1d263f] border-[#3498db] shadow-[0_0_15px_rgba(52,152,219,0.15)]'
+                : 'border-[#242f4c]'
             }`}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-amber-300" />
-                <span className="text-xs font-black text-slate-200">Player 1 (White)</span>
-              </div>
+            <div className="flex justify-between items-center text-[11px] text-[#8c92a4] mb-1">
+              <span>👤 Player 1 (White)</span>
               {currentPlayer === 1 && !matchWinner && (
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 animate-pulse">
+                <span className="text-[9px] bg-[#3498db] text-white px-1.5 py-0.5 rounded-[4px] font-bold">
                   TURN
                 </span>
               )}
             </div>
-            <div className="text-xl font-black text-amber-300 mt-1">{player1Score} PTS</div>
+            <div className="text-xl font-bold text-white" id="p1Score">
+              {player1Score} PTS
+            </div>
           </div>
 
-          {/* Player 2 / AI Card */}
+          {/* P2 / AI Score Card */}
           <div
-            className={`p-3 rounded-2xl border transition-all ${
+            id="p2Card"
+            className={`bg-[#161c2d] border rounded-[12px] p-3 flex flex-col relative transition-all duration-300 ${
               currentPlayer === 2 && !matchWinner
-                ? 'bg-cyan-500/20 border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
-                : 'bg-slate-900/60 border-white/5'
+                ? 'bg-[#1d263f] border-[#3498db] shadow-[0_0_15px_rgba(52,152,219,0.15)]'
+                : 'border-[#242f4c]'
             }`}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                {opponentType === 'ai' ? (
-                  <Bot className="w-3.5 h-3.5 text-cyan-300" />
-                ) : (
-                  <Users className="w-3.5 h-3.5 text-cyan-300" />
-                )}
-                <span className="text-xs font-black text-slate-200">
-                  {opponentType === 'ai' ? 'Computer (Black)' : 'Player 2 (Black)'}
-                </span>
-              </div>
+            <div className="flex justify-between items-center text-[11px] text-[#8c92a4] mb-1">
+              <span>{opponentType === 'ai' ? '🤖 Computer (Black)' : '👥 Player 2 (Black)'}</span>
               {currentPlayer === 2 && !matchWinner && (
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cyan-400 text-slate-950 animate-pulse">
+                <span className="text-[9px] bg-[#3498db] text-white px-1.5 py-0.5 rounded-[4px] font-bold">
                   TURN
                 </span>
               )}
             </div>
-            <div className="text-xl font-black text-cyan-300 mt-1">{player2Score} PTS</div>
+            <div className="text-xl font-bold text-white" id="p2Score">
+              {player2Score} PTS
+            </div>
           </div>
         </div>
 
-        {/* Live Announcement Toast */}
-        <div className="p-2.5 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2 truncate">
-            <span className="text-sm">📢</span>
-            <span className="text-slate-200 font-medium truncate">{matchStatusText}</span>
+        {/* Ticker Bar */}
+        <div className="bg-[#161c2d] mx-4 sm:mx-5 mb-3.5 px-3 py-2 rounded-[8px] border border-[#242f4c] flex justify-between items-center text-[11px] text-[#8c92a4]">
+          <div className="flex items-center gap-1.5 text-white truncate max-w-[80%]">
+            <span>{currentPlayer === 2 && opponentType === 'ai' ? '🤖' : '🎯'}</span>
+            <span id="tickerMessage" className="truncate">{matchStatusText}</span>
           </div>
-          <div className="flex items-center gap-1 text-[11px] text-slate-400 shrink-0 font-mono">
-            <Clock className="w-3 h-3" />
-            <span>{Math.floor(gameTimeSeconds / 60)}:{(gameTimeSeconds % 60).toString().padStart(2, '0')}</span>
+          <span id="tickerTime" className="font-mono font-medium text-[#f1c40f]">
+            {Math.floor(gameTimeSeconds / 60)}:{(gameTimeSeconds % 60).toString().padStart(2, '0')}
+          </span>
+        </div>
+
+        {/* Board Stage */}
+        <div className="px-4 sm:px-5 pb-3.5 flex flex-col items-center relative">
+          <div className="relative rounded-[16px] overflow-hidden bg-[#5c3a21] border-[12px] sm:border-[14px] border-[#3d2312] shadow-[0_15px_35px_rgba(0,0,0,0.6),inset_0_0_20px_rgba(0,0,0,0.5)]">
+            <canvas
+              id="carromCanvas"
+              ref={canvasRef}
+              width={BOARD_SIZE}
+              height={BOARD_SIZE}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerLeave={handlePointerUp}
+              onPointerCancel={handlePointerUp}
+              className="cursor-crosshair touch-none select-none block max-w-full h-auto aspect-square"
+            />
+
+            {/* Floating Combo Badge */}
+            <AnimatePresence>
+              {comboCount > 1 && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-[#f1c40f] to-[#e67e22] text-[#090b10] font-black text-xs shadow-lg flex items-center gap-1 pointer-events-none"
+                >
+                  <span>🔥 STREAK x{comboCount}!</span>
+                </motion.div>
+              )}
+
+              {queenCoverPending && (
+                <motion.div
+                  initial={{ y: -15, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  className="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-[#e74c3c] border border-[#f1c40f] text-white font-bold text-[11px] shadow-lg flex items-center gap-1 pointer-events-none"
+                >
+                  <span>👑 Queen Cover Pending for Player {queenCoverPending}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
-      </div>
 
-      {/* Main Canvas Carrom Board Container */}
-      <div className="relative w-full max-w-[500px] aspect-square rounded-3xl overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.8)] border-4 border-[#78350f] bg-[#451a03]">
-        <canvas
-          ref={canvasRef}
-          width={BOARD_SIZE}
-          height={BOARD_SIZE}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          className="w-full h-full cursor-crosshair touch-none select-none block"
-        />
-
-        {/* Floating Combo & Queen Alerts */}
-        <AnimatePresence>
-          {comboCount > 1 && (
-            <motion.div
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0, opacity: 0 }}
-              className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-xs shadow-lg flex items-center gap-1 pointer-events-none"
-            >
-              <Flame className="w-3.5 h-3.5 fill-current" />
-              <span>COMBO STREAK x{comboCount}!</span>
-            </motion.div>
-          )}
-
-          {queenCoverPending && (
-            <motion.div
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full bg-red-600/90 border border-amber-300 text-white font-black text-xs shadow-lg flex items-center gap-1.5 pointer-events-none"
-            >
-              <span>👑 Queen Cover Pending for Player {queenCoverPending}!</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Baseline Slider & Power Controls Bar */}
-      <div className="w-full max-w-[500px] bg-[#121626]/90 border border-amber-500/30 rounded-3xl p-4 flex flex-col gap-3 shadow-xl">
-        {/* Horizontal Slider for Striker Positioning */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between text-xs text-slate-300 font-bold">
-            <span className="flex items-center gap-1">
-              <Sliders className="w-3.5 h-3.5 text-amber-400" />
+        {/* Controls Panel */}
+        <div className="px-4 sm:px-5 pb-4 flex flex-col gap-3">
+          {/* Slider Group */}
+          <div className="bg-[#161c2d] border border-[#242f4c] rounded-[10px] p-3 sm:p-3.5 flex flex-col gap-2">
+            <div className="flex justify-between text-[11px] text-[#8c92a4]">
               <span>Baseline Striker Position:</span>
-            </span>
-            <span className="text-amber-300 font-mono">
-              {Math.round(((strikerRef.current.x - BASELINE_MIN_X) / (BASELINE_MAX_X - BASELINE_MIN_X)) * 100)}%
-            </span>
+              <strong id="sliderValDisplay" className="text-[#f1c40f]">
+                {strikerPercent}%
+              </strong>
+            </div>
+            <input
+              type="range"
+              min="10"
+              max="90"
+              value={strikerPercent}
+              id="strikerSlider"
+              disabled={!strikerRef.current.active || isSimulatingRef.current || matchWinner !== null}
+              onChange={(e) => {
+                setStrikerByPercent(parseInt(e.target.value, 10));
+              }}
+              className="w-full accent-[#3498db] cursor-pointer h-2 bg-[#111522] rounded-lg appearance-none"
+            />
+            <div className="grid grid-cols-4 gap-1.5">
+              {[35, 60, 85, 100].map((pwr) => (
+                <button
+                  key={pwr}
+                  disabled={!strikerRef.current.active || isSimulatingRef.current || matchWinner !== null}
+                  onClick={() => handleQuickPowerClick(pwr)}
+                  className={`bg-[#111522] border border-[#242f4c] py-1.5 rounded-[6px] text-[10px] font-semibold cursor-pointer transition text-center disabled:opacity-40 active:scale-95 ${
+                    quickPowerSelected === pwr
+                      ? 'bg-[#222d4a] text-white border-[#3498db]'
+                      : 'text-[#8c92a4] hover:bg-[#222d4a] hover:text-white hover:border-[#3498db]'
+                  }`}
+                >
+                  {pwr}%
+                </button>
+              ))}
+            </div>
           </div>
-          <input
-            type="range"
-            min={BASELINE_MIN_X}
-            max={BASELINE_MAX_X}
-            value={strikerRef.current.x}
-            disabled={!strikerRef.current.active || isSimulatingRef.current || matchWinner !== null}
-            onChange={(e) => {
-              strikerRef.current.x = parseFloat(e.target.value);
-            }}
-            className="w-full h-2 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-amber-400"
-          />
+
+          {/* Action Grid */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              id="resetBoardBtn"
+              onClick={() => resetMatch()}
+              className="bg-gradient-to-br from-[#1b2438] to-[#131929] border border-[#242f4c] hover:border-[#3498db] text-white p-2.5 rounded-[8px] text-xs font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition hover:from-[#24304d] hover:to-[#192238] active:scale-95"
+            >
+              <span>🔄</span> Reset Board
+            </button>
+            <button
+              id="rulesBtn"
+              onClick={() => setShowGuideModal(true)}
+              className="bg-gradient-to-br from-[#1b2438] to-[#131929] border border-[#242f4c] hover:border-[#3498db] text-white p-2.5 rounded-[8px] text-xs font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition hover:from-[#24304d] hover:to-[#192238] active:scale-95"
+            >
+              <span>📖</span> Rules Guide
+            </button>
+            <button
+              onClick={handle96FxHubTrigger}
+              className={`bg-gradient-to-br from-[#1b2438] to-[#131929] border border-[#242f4c] hover:border-[#2ecc71] text-[#2ecc71] p-2.5 rounded-[8px] text-xs font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition active:scale-95 ${
+                fxHubPulse ? 'ring-2 ring-[#2ecc71] shadow-[0_0_15px_rgba(46,204,113,0.4)]' : ''
+              }`}
+            >
+              <span>✨</span> 96 FX Hub
+            </button>
+            <button
+              onClick={() => setVfxEnabled(!vfxEnabled)}
+              className={`bg-gradient-to-br from-[#1b2438] to-[#131929] border border-[#242f4c] hover:border-[#3498db] text-[#3498db] p-2.5 rounded-[8px] text-xs font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition active:scale-95 ${
+                vfxEnabled ? 'border-[#3498db]/60 shadow-[0_0_10px_rgba(52,152,219,0.2)]' : 'opacity-70'
+              }`}
+            >
+              <span>⚡</span> VFX Engine: {vfxEnabled ? 'ON' : 'OFF'}
+            </button>
+          </div>
         </div>
 
-        {/* Quick Power Strike Buttons */}
-        <div className="flex items-center justify-between gap-2 pt-1">
-          <span className="text-[11px] font-bold text-slate-400">Quick Strike:</span>
-          <div className="flex items-center gap-1.5">
-            {[35, 60, 85, 100].map((pwr) => (
-              <button
-                key={pwr}
-                disabled={!strikerRef.current.active || isSimulatingRef.current || matchWinner !== null}
-                onClick={() => releaseStriker(strikerRef.current.aimAngle, pwr)}
-                className="px-3 py-1 rounded-xl bg-slate-900 hover:bg-amber-500 hover:text-slate-950 border border-white/10 text-xs font-bold text-slate-200 transition disabled:opacity-50 active:scale-95"
-              >
-                {pwr}%
-              </button>
-            ))}
-          </div>
+        {/* Arena Footer */}
+        <div className="bg-[#090b10] px-4 sm:px-5 py-3 border-t border-[#242f4c] flex justify-between text-[10px] text-[#8c92a4]">
+          <span>Web Carrom Physics Module v2.5</span>
+          <span className="text-[#2ecc71]">Active Frame Rate: 60 FPS</span>
         </div>
       </div>
 
-      {/* Rules & Controls Modal */}
+      {/* Rules Guide Modal */}
       {showGuideModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
-          <div className="relative w-full max-w-lg bg-[#11131e] border border-amber-500/40 rounded-3xl p-6 shadow-2xl text-white space-y-4">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <div className="relative w-full max-w-md bg-[#111522] border border-[#242f4c] rounded-[16px] p-5 shadow-2xl text-white space-y-3.5">
+            <div className="flex items-center justify-between border-b border-[#242f4c] pb-3">
               <div className="flex items-center gap-2">
-                <span className="text-2xl">🥏</span>
-                <h3 className="text-base font-black text-amber-300">Carrom Arena Guide</h3>
+                <span className="text-xl">🎯</span>
+                <h3 className="text-base font-bold text-[#f1c40f]">Carrom Board Rules &amp; Controls</h3>
               </div>
               <button
                 onClick={() => setShowGuideModal(false)}
-                className="px-3 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold"
+                className="px-2.5 py-1 rounded-[6px] bg-[#161c2d] hover:bg-[#222d4a] text-xs font-bold border border-[#242f4c]"
               >
-                ✕ Close
+                ✕
               </button>
             </div>
 
-            <div className="space-y-3 text-xs text-slate-300 leading-relaxed max-h-[60vh] overflow-y-auto custom-scrollbar">
-              <div className="p-3 bg-amber-500/10 border border-amber-400/30 rounded-2xl text-amber-200 font-bold">
-                🎯 Striker Controls &amp; Shooting
+            <div className="space-y-3 text-xs text-[#8c92a4] leading-relaxed max-h-[60vh] overflow-y-auto">
+              <div className="p-2.5 bg-[#161c2d] border border-[#242f4c] rounded-[8px] text-[#f1c40f] font-semibold">
+                🎯 Striker Placement &amp; Aiming
               </div>
-              <ul className="space-y-1.5 pl-2">
-                <li>• <strong>Position Striker:</strong> Drag slider or touch baseline to place striker.</li>
-                <li>• <strong>Aim &amp; Power:</strong> Pull back on striker to create aim line and build power meter.</li>
-                <li>• <strong>Release:</strong> Release touch or click Quick Strike buttons to propel striker.</li>
+              <ul className="space-y-1 pl-2 text-slate-200">
+                <li>• <strong>Baseline Position:</strong> Adjust the slider from 10% to 90% or drag along the baseline.</li>
+                <li>• <strong>Pull to Aim:</strong> Touch and pull backward on the striker to adjust shooting angle &amp; power.</li>
+                <li>• <strong>Quick Strike:</strong> Tap any of the preset power buttons (35%, 60%, 85%, 100%) to instantly strike.</li>
               </ul>
 
-              <div className="p-3 bg-amber-500/10 border border-amber-400/30 rounded-2xl text-amber-200 font-bold">
-                🏆 Scoring &amp; Queen Rules
+              <div className="p-2.5 bg-[#161c2d] border border-[#242f4c] rounded-[8px] text-[#f1c40f] font-semibold">
+                🏆 Scoring &amp; Formats
               </div>
-              <ul className="space-y-1.5 pl-2">
+              <ul className="space-y-1 pl-2 text-slate-200">
                 <li>• <strong>White Carrom Men:</strong> 10 Points</li>
                 <li>• <strong>Black Carrom Men:</strong> 5 Points</li>
-                <li>• <strong>Red Queen:</strong> 25 Points (Must pocket a carrom piece to cover Queen).</li>
-                <li>• <strong>Foul Penalty:</strong> Pocketing striker costs 5 points and returns piece to center.</li>
+                <li>• <strong>Red Queen:</strong> 25 Points (Requires pocketing a cover piece on your next turn).</li>
+                <li>• <strong>Striker Foul:</strong> -5 Points penalty and returns a pocketed piece to the center rosette.</li>
               </ul>
+
+              <div className="pt-2 border-t border-[#242f4c]">
+                <button
+                  onClick={copyStandaloneCode}
+                  className="w-full bg-[#1b2438] hover:bg-[#24304d] border border-[#3498db] text-[#3498db] hover:text-white py-2 px-3 rounded-[8px] font-semibold text-xs flex items-center justify-center gap-2 transition active:scale-95"
+                >
+                  {copiedSnippet ? (
+                    <>
+                      <Check className="w-4 h-4 text-[#2ecc71]" />
+                      <span className="text-[#2ecc71]">Copied Standalone HTML Snippet!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>Copy Standalone Carrom HTML Snippet</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

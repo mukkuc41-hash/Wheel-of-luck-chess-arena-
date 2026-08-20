@@ -51,7 +51,6 @@ import { UnoBoard } from './components/UnoBoard';
 import { HeartsBoard } from './components/HeartsBoard';
 import { GinRummyBoard } from './components/GinRummyBoard';
 import { SpeedBoard } from './components/SpeedBoard';
-import { FindTheNumberBoard } from './components/FindTheNumberBoard';
 import { CarromBoard } from './components/CarromBoard';
 import { GameBarSelector } from './components/GameBarSelector';
 import { GameOptionsControlPanel } from './components/GameOptionsControlPanel';
@@ -75,7 +74,7 @@ import { GoogleConnectModal } from './components/GoogleConnectModal';
 import { telemetryEngine } from './utils/telemetryEngine';
 import { evaluateBoard } from './utils/evalEngine';
 import { detectOpening } from './utils/openingBook';
-import { recordPlayerCaptureForHatrick, updateQuestProgress } from './utils/pointsManager';
+import { recordPlayerCaptureForHatrick, updateQuestProgress, applyMatchLossPenalty } from './utils/pointsManager';
 
 import { RotateCcw, BookOpen, Wand2, ShieldAlert, Flame, Sliders, History, Sparkles } from 'lucide-react';
 import { layoutToFen } from './utils/variantManager';
@@ -465,7 +464,13 @@ export default function App() {
     socket.on('game:ended', (data: { winner: 'w' | 'b' | 'draw'; reason: string }) => {
       setIsGameActive(false);
       setGameResult({ winner: data.winner, reason: data.reason as any });
-      soundFx.playGameOver(data.winner !== null && data.winner !== 'draw');
+      const userLost = data.winner !== null && data.winner !== 'draw' && data.winner !== myPvPColor;
+      if (userLost) {
+        applyMatchLossPenalty(activeBoardGame, 10000);
+        soundFx.playGameOver(false);
+      } else {
+        soundFx.playGameOver(data.winner !== null && data.winner !== 'draw');
+      }
     });
 
     socket.on('chat:message', (msg: ChatMessage) => {
@@ -662,6 +667,10 @@ export default function App() {
           reasonRes = 'checkmate';
           setIsGameActive(false);
           setGameResult({ winner: winnerRes, reason: 'checkmate' });
+          const userColorCode = gameMode === 'pvp' ? (myPvPColor === 'b' ? 'b' : 'w') : orientation;
+          if (winnerRes !== userColorCode) {
+            applyMatchLossPenalty('chess', 10000);
+          }
           if (isPlayerTurn && winnerRes === moveResult.color) {
             updateQuestProgress('win', 1);
           }
@@ -733,11 +742,50 @@ export default function App() {
   const handleTimeout = useCallback((loserColor: 'w' | 'b') => {
     soundFx.playGameOver(false);
     setIsGameActive(false);
+    const winnerColor = loserColor === 'w' ? 'b' : 'w';
+    const userColorCode = gameMode === 'pvp' ? (myPvPColor === 'b' ? 'b' : 'w') : orientation;
+    if (loserColor === userColorCode) {
+      applyMatchLossPenalty('chess', 10000);
+    }
     setGameResult({
-      winner: loserColor === 'w' ? 'b' : 'w',
+      winner: winnerColor,
       reason: 'timeout',
     });
-  }, []);
+  }, [gameMode, myPvPColor, orientation]);
+
+  // Handle Game End for any of the 18 platform board games
+  const handleBoardGameEnd = useCallback(
+    (gameType: ActiveBoardGame, w: 'w' | 'b' | 'draw', reason?: string) => {
+      const durationSec = Math.max(5, Math.round((Date.now() - matchStartTimeRef.current) / 1000));
+      const userColorCode: 'w' | 'b' = gameMode === 'pvp' ? (myPvPColor === 'b' ? 'b' : 'w') : orientation;
+      const isDefeat = w !== 'draw' && w !== userColorCode;
+
+      // Deduct 10,000 points in 96 FX Hub & user points manager on any match defeat
+      if (isDefeat) {
+        applyMatchLossPenalty(gameType, 10000);
+        soundFx.playGameOver(false);
+      } else if (w !== 'draw') {
+        soundFx.playGameOver(true);
+      }
+
+      recordGameResult({
+        gameType,
+        mode: gameMode,
+        whiteUsername: currentUser?.username || 'Guest',
+        blackUsername: gameMode === 'ai' ? 'Computer' : 'Player 2',
+        winner: w,
+        reason: reason || `${gameType}_match_end`,
+        moveCount: 15,
+        durationSeconds: durationSec,
+      });
+
+      setGameResult({
+        winner: w,
+        reason: reason || `${gameType}_completed`,
+      });
+    },
+    [currentUser?.username, gameMode, myPvPColor, orientation]
+  );
 
   // Reset Game
   const resetGame = (forceClassical: boolean | React.MouseEvent = false) => {
@@ -815,6 +863,7 @@ export default function App() {
     soundFx.playGameOver(false);
     setIsGameActive(false);
     const winningColor = activeTurn === 'w' ? 'b' : 'w';
+    applyMatchLossPenalty(activeBoardGame, 10000);
     setGameResult({
       winner: winningColor,
       reason: 'resignation',
@@ -1217,50 +1266,53 @@ export default function App() {
             <div className="w-full animate-fadeIn">
               <CheckersBoard
                 gameMode={gameMode}
-                onGameEnd={(w, reason) => {
-                  const durationSec = Math.max(5, Math.round((Date.now() - matchStartTimeRef.current) / 1000));
-                  recordGameResult({
-                    gameType: 'checkers',
-                    mode: gameMode,
-                    whiteUsername: currentUser?.username || 'Guest',
-                    blackUsername: gameMode === 'ai' ? 'Computer' : 'Player 2',
-                    winner: w,
-                    reason: reason || 'checkers_win',
-                    moveCount: 12,
-                    durationSeconds: durationSec,
-                  });
-                }}
+                onGameEnd={(w, reason) => handleBoardGameEnd('checkers', w, reason)}
               />
             </div>
           )}
 
           {activeBoardGame === 'backgammon' && (
             <div className="w-full animate-fadeIn">
-              <BackgammonBoard gameMode={gameMode} />
+              <BackgammonBoard
+                gameMode={gameMode}
+                onGameEnd={(w, reason) => handleBoardGameEnd('backgammon', w, reason)}
+              />
             </div>
           )}
 
           {activeBoardGame === 'snakes' && (
             <div className="w-full animate-fadeIn">
-              <SnakesAndLaddersBoard gameMode={gameMode} />
+              <SnakesAndLaddersBoard
+                gameMode={gameMode}
+                onGameEnd={(w, reason) => handleBoardGameEnd('snakes', w, reason)}
+              />
             </div>
           )}
 
           {activeBoardGame === 'ludo' && (
             <div className="w-full animate-fadeIn">
-              <LudoBoard gameMode={gameMode} />
+              <LudoBoard
+                gameMode={gameMode}
+                onGameEnd={(w, reason) => handleBoardGameEnd('ludo', w, reason)}
+              />
             </div>
           )}
 
           {activeBoardGame === 'gomoku' && (
             <div className="w-full animate-fadeIn">
-              <GomokuBoard gameMode={gameMode} />
+              <GomokuBoard
+                gameMode={gameMode}
+                onGameEnd={(w, reason) => handleBoardGameEnd('gomoku', w, reason)}
+              />
             </div>
           )}
 
           {activeBoardGame === 'reversi' && (
             <div className="w-full animate-fadeIn">
-              <ReversiBoard gameMode={gameMode} />
+              <ReversiBoard
+                gameMode={gameMode}
+                onGameEnd={(w, reason) => handleBoardGameEnd('reversi', w, reason)}
+              />
             </div>
           )}
 
@@ -1268,88 +1320,79 @@ export default function App() {
             <div className="w-full animate-fadeIn">
               <ConnectFourBoard
                 gameMode={gameMode}
-                onGameEnd={(w, reason) => {
-                  const durationSec = Math.max(5, Math.round((Date.now() - matchStartTimeRef.current) / 1000));
-                  recordGameResult({
-                    gameType: 'connect4',
-                    mode: gameMode,
-                    whiteUsername: currentUser?.username || 'Guest',
-                    blackUsername: gameMode === 'ai' ? 'Computer' : 'Player 2',
-                    winner: w,
-                    reason: reason || 'connect4_win',
-                    moveCount: 10,
-                    durationSeconds: durationSec,
-                  });
-                }}
+                onGameEnd={(w, reason) => handleBoardGameEnd('connect4', w, reason)}
               />
             </div>
           )}
 
           {activeBoardGame === 'ultimatetictactoe' && (
             <div className="w-full animate-fadeIn">
-              <UltimateTicTacToeBoard gameMode={gameMode} />
+              <UltimateTicTacToeBoard
+                gameMode={gameMode}
+                onGameEnd={(w, reason) => handleBoardGameEnd('ultimatetictactoe', w, reason)}
+              />
             </div>
           )}
 
           {activeBoardGame === 'dotsandboxes' && (
             <div className="w-full animate-fadeIn">
-              <DotsAndBoxesBoard gameMode={gameMode} />
+              <DotsAndBoxesBoard
+                gameMode={gameMode}
+                onGameEnd={(w, reason) => handleBoardGameEnd('dotsandboxes', w, reason)}
+              />
             </div>
           )}
 
           {activeBoardGame === 'battleship' && (
             <div className="w-full animate-fadeIn">
-              <BattleshipBoard gameMode={gameMode} />
+              <BattleshipBoard
+                gameMode={gameMode}
+                onGameEnd={(w, reason) => handleBoardGameEnd('battleship', w, reason)}
+              />
             </div>
           )}
 
           {activeBoardGame === 'sim' && (
             <div className="w-full animate-fadeIn">
-              <SimBoard gameMode={gameMode} />
+              <SimBoard
+                gameMode={gameMode}
+                onGameEnd={(w, reason) => handleBoardGameEnd('sim', w, reason)}
+              />
             </div>
           )}
 
           {activeBoardGame === 'uno' && (
             <div className="w-full animate-fadeIn">
-              <UnoBoard gameMode={gameMode} />
+              <UnoBoard
+                gameMode={gameMode}
+                onGameEnd={(w, reason) => handleBoardGameEnd('uno', w, reason)}
+              />
             </div>
           )}
 
           {activeBoardGame === 'hearts' && (
             <div className="w-full animate-fadeIn">
-              <HeartsBoard gameMode={gameMode} />
+              <HeartsBoard
+                gameMode={gameMode}
+                onGameEnd={(w, reason) => handleBoardGameEnd('hearts', w, reason)}
+              />
             </div>
           )}
 
           {activeBoardGame === 'ginrummy' && (
             <div className="w-full animate-fadeIn">
-              <GinRummyBoard gameMode={gameMode} />
+              <GinRummyBoard
+                gameMode={gameMode}
+                onGameEnd={(w, reason) => handleBoardGameEnd('ginrummy', w, reason)}
+              />
             </div>
           )}
 
           {activeBoardGame === 'speed' && (
             <div className="w-full animate-fadeIn">
-              <SpeedBoard gameMode={gameMode} />
-            </div>
-          )}
-
-          {activeBoardGame === 'findthenumber' && (
-            <div className="w-full animate-fadeIn">
-              <FindTheNumberBoard
+              <SpeedBoard
                 gameMode={gameMode}
-                onGameEnd={(w, reason) => {
-                  const durationSec = Math.max(3, Math.round((Date.now() - matchStartTimeRef.current) / 1000));
-                  recordGameResult({
-                    gameType: 'findthenumber',
-                    mode: gameMode,
-                    whiteUsername: currentUser?.username || 'Guest',
-                    blackUsername: gameMode === 'ai' ? 'Computer' : 'Player 2',
-                    winner: w,
-                    reason: reason || 'speed_challenge_win',
-                    moveCount: 26,
-                    durationSeconds: durationSec,
-                  });
-                }}
+                onGameEnd={(w, reason) => handleBoardGameEnd('speed', w, reason)}
               />
             </div>
           )}
@@ -1358,19 +1401,7 @@ export default function App() {
             <div className="w-full animate-fadeIn">
               <CarromBoard
                 gameMode={gameMode}
-                onGameEnd={(w, reason) => {
-                  const durationSec = Math.max(5, Math.round((Date.now() - matchStartTimeRef.current) / 1000));
-                  recordGameResult({
-                    gameType: 'carrom',
-                    mode: gameMode,
-                    whiteUsername: currentUser?.username || 'Guest',
-                    blackUsername: gameMode === 'ai' ? 'Computer' : 'Player 2',
-                    winner: w,
-                    reason: reason || 'carrom_match_win',
-                    moveCount: 15,
-                    durationSeconds: durationSec,
-                  });
-                }}
+                onGameEnd={(w, reason) => handleBoardGameEnd('carrom', w, reason)}
               />
             </div>
           )}
@@ -1513,9 +1544,19 @@ export default function App() {
       {gameResult.winner !== null && (
         <GameOverModal
           result={gameResult}
-          whitePlayer={settings.whitePlayer}
-          blackPlayer={settings.blackPlayer}
-          moveCount={moveRecords.length}
+          gameType={activeBoardGame}
+          userColor={gameMode === 'pvp' ? (myPvPColor === 'b' ? 'b' : 'w') : orientation}
+          whitePlayer={
+            activeBoardGame === 'chess'
+              ? settings.whitePlayer
+              : { name: currentUser?.username || 'Player 1' }
+          }
+          blackPlayer={
+            activeBoardGame === 'chess'
+              ? settings.blackPlayer
+              : { name: gameMode === 'ai' ? 'Computer' : 'Player 2' }
+          }
+          moveCount={moveRecords.length || 12}
           onNewGame={resetGame}
           onReviewBoard={() => setGameResult({ winner: null, reason: null })}
         />

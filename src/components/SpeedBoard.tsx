@@ -6,12 +6,13 @@ import { GameOptionsControlPanel } from './GameOptionsControlPanel';
 
 interface SpeedBoardProps {
   gameMode?: 'pvp' | 'ai' | 'local';
+  onGameEnd?: (winner: 'w' | 'b' | 'draw', reason?: string) => void;
 }
 
 type Suit = '♠' | '♥' | '♦' | '♣';
 type Card = { id: string; suit: Suit; rank: number; rankStr: string };
 
-export const SpeedBoard: React.FC<SpeedBoardProps> = ({ gameMode: initialMode = 'ai' }) => {
+export const SpeedBoard: React.FC<SpeedBoardProps> = ({ gameMode: initialMode = 'ai', onGameEnd }) => {
   const SUITS: Suit[] = ['♠', '♥', '♦', '♣'];
   const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 
@@ -51,8 +52,18 @@ export const SpeedBoard: React.FC<SpeedBoardProps> = ({ gameMode: initialMode = 
   const [sideStock, setSideStock] = useState<Card[]>([]);
   const [winner, setWinner] = useState<'player' | 'ai' | null>(null);
   const [statusMsg, setStatusMsg] = useState<string>('Match cards ±1 rank on either central pile as fast as you can!');
+  const hasRecordedRef = React.useRef(false);
+
+  useEffect(() => {
+    if (winner && onGameEnd && !hasRecordedRef.current) {
+      hasRecordedRef.current = true;
+      const winnerCode = winner === 'player' ? 'w' : 'b';
+      onGameEnd(winnerCode, 'speed_depleted_deck_win');
+    }
+  }, [winner, onGameEnd]);
 
   const setupGame = () => {
+    hasRecordedRef.current = false;
     const deck = createDeck();
     const pHand = deck.splice(0, 5);
     const pDeck = deck.splice(0, 15);

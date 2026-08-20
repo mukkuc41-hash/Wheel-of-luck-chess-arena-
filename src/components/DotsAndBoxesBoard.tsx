@@ -6,9 +6,10 @@ import { GameOptionsControlPanel } from './GameOptionsControlPanel';
 
 interface DotsAndBoxesBoardProps {
   gameMode?: 'pvp' | 'ai' | 'local';
+  onGameEnd?: (winner: 'w' | 'b' | 'draw', reason?: string) => void;
 }
 
-export const DotsAndBoxesBoard: React.FC<DotsAndBoxesBoardProps> = ({ gameMode: initialMode = 'ai' }) => {
+export const DotsAndBoxesBoard: React.FC<DotsAndBoxesBoardProps> = ({ gameMode: initialMode = 'ai', onGameEnd }) => {
   const GRID_SIZE = 5;
   const BOX_COUNT = GRID_SIZE - 1;
 
@@ -28,6 +29,7 @@ export const DotsAndBoxesBoard: React.FC<DotsAndBoxesBoardProps> = ({ gameMode: 
   const [p2Score, setP2Score] = useState<number>(0);
   const [turn, setTurn] = useState<'P1' | 'P2'>('P1');
   const [winner, setWinner] = useState<'P1' | 'P2' | 'draw' | null>(null);
+  const hasRecordedRef = React.useRef(false);
 
   // Settings state
   const [playerCount, setPlayerCount] = useState<number>(2);
@@ -39,6 +41,14 @@ export const DotsAndBoxesBoard: React.FC<DotsAndBoxesBoardProps> = ({ gameMode: 
     P4: true,
   });
 
+  useEffect(() => {
+    if (winner && onGameEnd && !hasRecordedRef.current) {
+      hasRecordedRef.current = true;
+      const winnerCode = winner === 'draw' ? 'draw' : winner === userColor ? 'w' : 'b';
+      onGameEnd(winnerCode, 'dots_boxes_claim_squares');
+    }
+  }, [winner, onGameEnd, userColor]);
+
   const PLAYER_DECK = [
     { id: 'P1', name: 'Emerald (P1)', hex: '#10b981' },
     { id: 'P2', name: 'Indigo (P2)', hex: '#6366f1' },
@@ -47,6 +57,7 @@ export const DotsAndBoxesBoard: React.FC<DotsAndBoxesBoardProps> = ({ gameMode: 
   ];
 
   const resetGame = () => {
+    hasRecordedRef.current = false;
     setHLines(Array(GRID_SIZE).fill(false).map(() => Array(BOX_COUNT).fill(false)));
     setVLines(Array(BOX_COUNT).fill(false).map(() => Array(GRID_SIZE).fill(false)));
     setBoxes(Array(BOX_COUNT).fill(null).map(() => Array(BOX_COUNT).fill(null)));

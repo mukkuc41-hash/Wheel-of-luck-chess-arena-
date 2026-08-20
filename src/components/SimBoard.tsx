@@ -6,11 +6,12 @@ import { GameOptionsControlPanel } from './GameOptionsControlPanel';
 
 interface SimBoardProps {
   gameMode?: 'pvp' | 'ai' | 'local';
+  onGameEnd?: (winner: 'w' | 'b' | 'draw', reason?: string) => void;
 }
 
 type Edge = { id: string; u: number; v: number; color: 'red' | 'blue' | null };
 
-export const SimBoard: React.FC<SimBoardProps> = ({ gameMode: initialMode = 'ai' }) => {
+export const SimBoard: React.FC<SimBoardProps> = ({ gameMode: initialMode = 'ai', onGameEnd }) => {
   const NUM_DOTS = 6;
 
   const getDotCoords = () => {
@@ -43,6 +44,7 @@ export const SimBoard: React.FC<SimBoardProps> = ({ gameMode: initialMode = 'ai'
   const [edges, setEdges] = useState<Edge[]>(createInitialEdges);
   const [turn, setTurn] = useState<'red' | 'blue'>('red');
   const [winner, setWinner] = useState<'red' | 'blue' | null>(null);
+  const hasRecordedRef = React.useRef(false);
 
   // Settings state
   const [userColor, setUserColor] = useState<'red' | 'blue'>('red');
@@ -51,7 +53,16 @@ export const SimBoard: React.FC<SimBoardProps> = ({ gameMode: initialMode = 'ai'
     blue: true,
   });
 
+  useEffect(() => {
+    if (winner && onGameEnd && !hasRecordedRef.current) {
+      hasRecordedRef.current = true;
+      const winnerCode = winner === userColor ? 'w' : 'b';
+      onGameEnd(winnerCode, 'sim_monochromatic_triangle_formed');
+    }
+  }, [winner, onGameEnd, userColor]);
+
   const resetGame = () => {
+    hasRecordedRef.current = false;
     setEdges(createInitialEdges());
     setTurn('red');
     setWinner(null);

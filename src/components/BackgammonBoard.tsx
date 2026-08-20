@@ -10,9 +10,10 @@ export interface PointStack {
 
 interface BackgammonBoardProps {
   gameMode?: 'pvp' | 'ai' | 'local';
+  onGameEnd?: (winner: 'w' | 'b' | 'draw', reason?: string) => void;
 }
 
-export const BackgammonBoard: React.FC<BackgammonBoardProps> = ({ gameMode = 'ai' }) => {
+export const BackgammonBoard: React.FC<BackgammonBoardProps> = ({ gameMode = 'ai', onGameEnd }) => {
   // Backgammon standard 24 points setup (1-indexed 1 to 24)
   // Index 0 is Bar for White/Black hits, Index 25 is Bear-off
   const createInitialPoints = (): PointStack[] => {
@@ -41,8 +42,17 @@ export const BackgammonBoard: React.FC<BackgammonBoardProps> = ({ gameMode = 'ai
   const [offWhite, setOffWhite] = useState<number>(0);
   const [offBlack, setOffBlack] = useState<number>(0);
   const [winner, setWinner] = useState<'w' | 'b' | null>(null);
+  const hasRecordedRef = React.useRef(false);
+
+  useEffect(() => {
+    if (winner && onGameEnd && !hasRecordedRef.current) {
+      hasRecordedRef.current = true;
+      onGameEnd(winner, 'bearing_off_win');
+    }
+  }, [winner, onGameEnd]);
 
   const resetGame = () => {
+    hasRecordedRef.current = false;
     setPoints(createInitialPoints());
     setTurn('w');
     setDice([3, 5]);

@@ -196,6 +196,19 @@ export function spendPoints(amount: number, reason: string): boolean {
   return true;
 }
 
+export function applyMatchLossPenalty(gameNameOrId: string = 'Match', penaltyAmount: number = 10000): {
+  deducted: number;
+  newBalance: number;
+} {
+  const current = getUserPoints();
+  const newBalance = Math.max(0, current - penaltyAmount);
+  setUserPoints(newBalance, `Loss penalty applied in ${gameNameOrId} (-${penaltyAmount.toLocaleString()} PTS)`);
+  return {
+    deducted: penaltyAmount,
+    newBalance,
+  };
+}
+
 // Daily Wheel Logic (Once every 24h, or cooldown countdown)
 const DAILY_WHEEL_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
 

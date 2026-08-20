@@ -23,8 +23,7 @@ export const GAME_BAR_ITEMS: { id: ActiveBoardGame; title: string; icon: string 
   { id: 'hearts', title: '14. Hearts', icon: '♥' },
   { id: 'ginrummy', title: '15. Gin Rummy', icon: '🃏' },
   { id: 'speed', title: '16. Speed', icon: '⚡' },
-  { id: 'findthenumber', title: '17. Find Number', icon: '🖐️' },
-  { id: 'carrom', title: '18. Carrom Board', icon: '🥏' },
+  { id: 'carrom', title: '17. Carrom Board', icon: '🥏' },
 ];
 
 export const GameBarSelector: React.FC<GameBarSelectorProps> = ({

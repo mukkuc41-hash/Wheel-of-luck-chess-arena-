@@ -6,9 +6,10 @@ import { GameOptionsControlPanel } from './GameOptionsControlPanel';
 
 interface GomokuBoardProps {
   gameMode?: 'pvp' | 'ai' | 'local';
+  onGameEnd?: (winner: 'w' | 'b' | 'draw', reason?: string) => void;
 }
 
-export const GomokuBoard: React.FC<GomokuBoardProps> = ({ gameMode: initialMode = 'ai' }) => {
+export const GomokuBoard: React.FC<GomokuBoardProps> = ({ gameMode: initialMode = 'ai', onGameEnd }) => {
   const GRID_SIZE = 15;
   const [board, setBoard] = useState<( 'b' | 'w' | null )[][]>(
     Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null))
@@ -17,6 +18,7 @@ export const GomokuBoard: React.FC<GomokuBoardProps> = ({ gameMode: initialMode 
   const [winner, setWinner] = useState<'b' | 'w' | 'draw' | null>(null);
   const [winningLine, setWinningLine] = useState<{ row: number; col: number }[]>([]);
   const [lastMove, setLastMove] = useState<{ row: number; col: number } | null>(null);
+  const hasRecordedRef = React.useRef(false);
 
   // Settings state
   const [userColor, setUserColor] = useState<'b' | 'w'>('b');
@@ -25,7 +27,15 @@ export const GomokuBoard: React.FC<GomokuBoardProps> = ({ gameMode: initialMode 
     w: true,
   });
 
+  useEffect(() => {
+    if (winner && onGameEnd && !hasRecordedRef.current) {
+      hasRecordedRef.current = true;
+      onGameEnd(winner, 'five_in_a_row_align');
+    }
+  }, [winner, onGameEnd]);
+
   const resetGame = () => {
+    hasRecordedRef.current = false;
     setBoard(Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null)));
     setTurn('b');
     setWinner(null);

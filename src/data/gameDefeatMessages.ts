@@ -1,0 +1,149 @@
+import { ActiveBoardGame } from '../types';
+
+export interface GameDefeatMeta {
+  id: ActiveBoardGame;
+  gameNumber: number;
+  gameName: string;
+  seriesLabel: string;
+  penaltyDescription: string;
+  defaultDefeatSubtitle: string;
+}
+
+export const GAME_DEFEAT_MESSAGES: Record<ActiveBoardGame, GameDefeatMeta> = {
+  chess: {
+    id: 'chess',
+    gameNumber: 1,
+    gameName: 'Chess Pro Arena',
+    seriesLabel: 'Series: Game 1/17',
+    penaltyDescription: '10,000 points were deducted from your balance in accordance with the 16-Game Series Engine.',
+    defaultDefeatSubtitle: 'Player 2 won by Checkmate',
+  },
+  checkers: {
+    id: 'checkers',
+    gameNumber: 2,
+    gameName: 'Draughts (Checkers)',
+    seriesLabel: 'Series: Game 2/17',
+    penaltyDescription: '10,000 points were deducted from your balance in accordance with the 8x8 Draughts Multi-Jump Capture Engine.',
+    defaultDefeatSubtitle: 'Opponent swept all checker pieces',
+  },
+  backgammon: {
+    id: 'backgammon',
+    gameNumber: 3,
+    gameName: 'Backgammon',
+    seriesLabel: 'Series: Game 3/17',
+    penaltyDescription: '10,000 points were deducted from your balance in accordance with the 24-Point Blot & Bearing-Off Series Engine.',
+    defaultDefeatSubtitle: 'Opponent bore off all 15 checkers first',
+  },
+  ludo: {
+    id: 'ludo',
+    gameNumber: 4,
+    gameName: 'Ludo Championship',
+    seriesLabel: 'Series: Game 4/17',
+    penaltyDescription: '10,000 points were deducted from your balance in accordance with the 4-Token Home Track & Dice Collision Engine.',
+    defaultDefeatSubtitle: 'Opponent advanced all tokens safely to Home',
+  },
+  snakes: {
+    id: 'snakes',
+    gameNumber: 5,
+    gameName: 'Snakes & Ladders',
+    seriesLabel: 'Series: Game 5/17',
+    penaltyDescription: '10,000 points were deducted from your balance in accordance with the 100-Square Viper Descent & Board Roll Engine.',
+    defaultDefeatSubtitle: 'Opponent landed the final roll on square 100',
+  },
+  gomoku: {
+    id: 'gomoku',
+    gameNumber: 6,
+    gameName: 'Gomoku (Five in a Row)',
+    seriesLabel: 'Series: Game 6/17',
+    penaltyDescription: '10,000 points were deducted from your balance in accordance with the 15x15 Stone Alignment & Renju Strategy Engine.',
+    defaultDefeatSubtitle: 'Opponent connected 5 unbroken stones in a row',
+  },
+  reversi: {
+    id: 'reversi',
+    gameNumber: 7,
+    gameName: 'Reversi (Othello)',
+    seriesLabel: 'Series: Game 7/17',
+    penaltyDescription: '10,000 points were deducted from your balance in accordance with the 8x8 Outflank Discs & Territorial Flip Engine.',
+    defaultDefeatSubtitle: 'Opponent secured dominant disc count on the board',
+  },
+  connect4: {
+    id: 'connect4',
+    gameNumber: 8,
+    gameName: 'Connect Four',
+    seriesLabel: 'Series: Game 8/17',
+    penaltyDescription: '10,000 points were deducted from your balance in accordance with the 7x6 Vertical Gravity & Quad Disc Series Engine.',
+    defaultDefeatSubtitle: 'Opponent connected 4 matching discs',
+  },
+  ultimatetictactoe: {
+    id: 'ultimatetictactoe',
+    gameNumber: 9,
+    gameName: 'Ultimate Tic-Tac-Toe',
+    seriesLabel: 'Series: Game 9/17',
+    penaltyDescription: '10,000 points were deducted from your balance in accordance with the Nested 3x3 Macro-Grid Routing Engine.',
+    defaultDefeatSubtitle: 'Opponent conquered 3 sub-boards in a row',
+  },
+  dotsandboxes: {
+    id: 'dotsandboxes',
+    gameNumber: 10,
+    gameName: 'Dots and Boxes',
+    seriesLabel: 'Series: Game 10/17',
+    penaltyDescription: '10,000 points were deducted from your balance in accordance with the Dot Grid Perimeter & Box Territory Engine.',
+    defaultDefeatSubtitle: 'Opponent completed the majority of territory boxes',
+  },
+  battleship: {
+    id: 'battleship',
+    gameNumber: 11,
+    gameName: 'Battleship',
+    seriesLabel: 'Series: Game 11/17',
+    penaltyDescription: '10,000 points were deducted from your balance in accordance with the 10x10 Naval Coordinate & Fleet Torpedo Engine.',
+    defaultDefeatSubtitle: 'All 5 naval fleet ships were sunk by coordinate strikes',
+  },
+  sim: {
+    id: 'sim',
+    gameNumber: 12,
+    gameName: 'Sim (Triangle Game)',
+    seriesLabel: 'Series: Game 12/17',
+    penaltyDescription: '10,000 points were deducted from your balance in accordance with the 6-Vertex Graph Theory & Ramsey Triangle Engine.',
+    defaultDefeatSubtitle: 'A monochromatic triangle was formed on the graph',
+  },
+  uno: {
+    id: 'uno',
+    gameNumber: 13,
+    gameName: 'Uno (Crazy Eights)',
+    seriesLabel: 'Series: Game 13/17',
+    penaltyDescription: '10,000 points were deducted from your balance in accordance with the Action Card Deck & Color Match Penalty Engine.',
+    defaultDefeatSubtitle: 'Opponent played their final card and cleared hand',
+  },
+  hearts: {
+    id: 'hearts',
+    gameNumber: 14,
+    gameName: 'Hearts',
+    seriesLabel: 'Series: Game 14/17',
+    penaltyDescription: '10,000 points were deducted from your balance in accordance with the Trick-Taking & Queen of Spades Penalty Engine.',
+    defaultDefeatSubtitle: 'Penalty point threshold was exceeded in trick play',
+  },
+  ginrummy: {
+    id: 'ginrummy',
+    gameNumber: 15,
+    gameName: 'Gin Rummy',
+    seriesLabel: 'Series: Game 15/17',
+    penaltyDescription: '10,000 points were deducted from your balance in accordance with the Deadwood Card Melding & Knock Bonus Engine.',
+    defaultDefeatSubtitle: 'Opponent called Gin with zero deadwood cards',
+  },
+  speed: {
+    id: 'speed',
+    gameNumber: 16,
+    gameName: 'Speed (Spit)',
+    seriesLabel: 'Series: Game 16/17',
+    penaltyDescription: '10,000 points were deducted from your balance in accordance with the Simultaneous Fast-Tap Spit Matching Engine.',
+    defaultDefeatSubtitle: 'Opponent depleted all cards in the speed sprint',
+  },
+  carrom: {
+    id: 'carrom',
+    gameNumber: 17,
+    gameName: 'Carrom Board Arena',
+    seriesLabel: 'Series: Game 17/17',
+    penaltyDescription: '10,000 points were deducted from your balance in accordance with the Striker Trajectory & Queen Pocketing Physics Engine.',
+    defaultDefeatSubtitle: 'Opponent reached winning target score with Queen cover',
+  },
+};

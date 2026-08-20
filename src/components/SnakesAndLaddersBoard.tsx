@@ -5,6 +5,7 @@ import { soundFx } from '../utils/audio';
 
 interface SnakesAndLaddersBoardProps {
   gameMode?: 'pvp' | 'ai' | 'local';
+  onGameEnd?: (winner: 'w' | 'b' | 'draw', reason?: string) => void;
 }
 
 export interface PlayerConfig {
@@ -68,7 +69,7 @@ export const COLOR_PALETTE = [
   { hex: '#f97316', name: 'Orange', bgClass: 'bg-orange-500', borderClass: 'border-orange-400', ringClass: 'ring-orange-500/50' },
 ];
 
-export const SnakesAndLaddersBoard: React.FC<SnakesAndLaddersBoardProps> = ({ gameMode = 'ai' }) => {
+export const SnakesAndLaddersBoard: React.FC<SnakesAndLaddersBoardProps> = ({ gameMode = 'ai', onGameEnd }) => {
   const [playerCount, setPlayerCount] = useState<2 | 3 | 4>(2);
   const [players, setPlayers] = useState<PlayerConfig[]>([
     { id: 1, name: 'Player 1', pos: 1, color: COLOR_PALETTE[0].hex, colorName: COLOR_PALETTE[0].name, isAi: false },
@@ -84,11 +85,21 @@ export const SnakesAndLaddersBoard: React.FC<SnakesAndLaddersBoardProps> = ({ ga
   const [winner, setWinner] = useState<PlayerConfig | null>(null);
   const [eventMessage, setEventMessage] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState<boolean>(false);
+  const hasRecordedRef = React.useRef(false);
+
+  useEffect(() => {
+    if (winner && onGameEnd && !hasRecordedRef.current) {
+      hasRecordedRef.current = true;
+      const winnerCode = winner.id === 1 ? 'w' : 'b';
+      onGameEnd(winnerCode, 'snakes_ladder_reach_100');
+    }
+  }, [winner, onGameEnd]);
 
   const activePlayers = players.slice(0, playerCount);
   const currentPlayer = activePlayers[currentTurnIndex] || activePlayers[0];
 
   const resetGame = () => {
+    hasRecordedRef.current = false;
     setPlayers((prev) =>
       prev.map((p) => ({
         ...p,

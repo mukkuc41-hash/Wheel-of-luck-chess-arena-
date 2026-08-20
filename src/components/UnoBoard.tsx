@@ -6,6 +6,7 @@ import { GameOptionsControlPanel } from './GameOptionsControlPanel';
 
 interface UnoBoardProps {
   gameMode?: 'pvp' | 'ai' | 'local';
+  onGameEnd?: (winner: 'w' | 'b' | 'draw', reason?: string) => void;
 }
 
 type CardColor = 'red' | 'blue' | 'green' | 'yellow' | 'wild';
@@ -17,7 +18,7 @@ type UnoCard = {
   value: CardValue;
 };
 
-export const UnoBoard: React.FC<UnoBoardProps> = ({ gameMode: initialMode = 'ai' }) => {
+export const UnoBoard: React.FC<UnoBoardProps> = ({ gameMode: initialMode = 'ai', onGameEnd }) => {
   const COLORS: CardColor[] = ['red', 'blue', 'green', 'yellow'];
   const VALUES: CardValue[] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'Skip', 'Reverse', '+2'];
 
@@ -79,8 +80,18 @@ export const UnoBoard: React.FC<UnoBoardProps> = ({ gameMode: initialMode = 'ai'
   const [turn, setTurn] = useState<'player' | 'ai'>('player');
   const [winner, setWinner] = useState<'player' | 'ai' | null>(null);
   const [statusMsg, setStatusMsg] = useState<string>('Match top card by color or rank!');
+  const hasRecordedRef = React.useRef(false);
+
+  useEffect(() => {
+    if (winner && onGameEnd && !hasRecordedRef.current) {
+      hasRecordedRef.current = true;
+      const winnerCode = winner === 'player' ? 'w' : 'b';
+      onGameEnd(winnerCode, 'uno_hand_cleared');
+    }
+  }, [winner, onGameEnd]);
 
   const setupGame = () => {
+    hasRecordedRef.current = false;
     const newDeck = createDeck();
     const pHand = newDeck.splice(0, 7);
     const aHand = newDeck.splice(0, 7);

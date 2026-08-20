@@ -6,9 +6,10 @@ import { GameOptionsControlPanel } from './GameOptionsControlPanel';
 
 interface UltimateTicTacToeBoardProps {
   gameMode?: 'pvp' | 'ai' | 'local';
+  onGameEnd?: (winner: 'w' | 'b' | 'draw', reason?: string) => void;
 }
 
-export const UltimateTicTacToeBoard: React.FC<UltimateTicTacToeBoardProps> = ({ gameMode: initialMode = 'ai' }) => {
+export const UltimateTicTacToeBoard: React.FC<UltimateTicTacToeBoardProps> = ({ gameMode: initialMode = 'ai', onGameEnd }) => {
   const [boards, setBoards] = useState<( 'X' | 'O' | null )[][]>(
     Array(9).fill(null).map(() => Array(9).fill(null))
   );
@@ -17,6 +18,7 @@ export const UltimateTicTacToeBoard: React.FC<UltimateTicTacToeBoardProps> = ({ 
   const [activeBoardIdx, setActiveBoardIdx] = useState<number>(-1);
   const [turn, setTurn] = useState<'X' | 'O'>('X');
   const [winner, setWinner] = useState<'X' | 'O' | 'draw' | null>(null);
+  const hasRecordedRef = React.useRef(false);
 
   // Settings state
   const [userColor, setUserColor] = useState<'X' | 'O'>('X');
@@ -25,7 +27,16 @@ export const UltimateTicTacToeBoard: React.FC<UltimateTicTacToeBoardProps> = ({ 
     O: true,
   });
 
+  useEffect(() => {
+    if (winner && onGameEnd && !hasRecordedRef.current) {
+      hasRecordedRef.current = true;
+      const winnerCode = winner === 'draw' ? 'draw' : winner === userColor ? 'w' : 'b';
+      onGameEnd(winnerCode, 'ultimate_tictactoe_macro_win');
+    }
+  }, [winner, onGameEnd, userColor]);
+
   const resetGame = () => {
+    hasRecordedRef.current = false;
     setBoards(Array(9).fill(null).map(() => Array(9).fill(null)));
     setBoardWinners(Array(9).fill(null));
     setActiveBoardIdx(-1);

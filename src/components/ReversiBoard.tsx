@@ -6,9 +6,10 @@ import { GameOptionsControlPanel } from './GameOptionsControlPanel';
 
 interface ReversiBoardProps {
   gameMode?: 'pvp' | 'ai' | 'local';
+  onGameEnd?: (winner: 'w' | 'b' | 'draw', reason?: string) => void;
 }
 
-export const ReversiBoard: React.FC<ReversiBoardProps> = ({ gameMode: initialMode = 'ai' }) => {
+export const ReversiBoard: React.FC<ReversiBoardProps> = ({ gameMode: initialMode = 'ai', onGameEnd }) => {
   // 'd' = Dark (Black/P1), 'l' = Light (White/P2), null = empty
   const createInitialBoard = (): ('d' | 'l' | null)[][] => {
     const b: ('d' | 'l' | null)[][] = Array(8).fill(null).map(() => Array(8).fill(null));
@@ -23,6 +24,7 @@ export const ReversiBoard: React.FC<ReversiBoardProps> = ({ gameMode: initialMod
   const [turn, setTurn] = useState<'d' | 'l'>('d'); // Dark moves first
   const [winner, setWinner] = useState<'d' | 'l' | 'draw' | null>(null);
   const [passedCount, setPassedCount] = useState<number>(0);
+  const hasRecordedRef = React.useRef(false);
 
   // Settings state
   const [userColor, setUserColor] = useState<'d' | 'l'>('d');
@@ -30,6 +32,22 @@ export const ReversiBoard: React.FC<ReversiBoardProps> = ({ gameMode: initialMod
     d: false,
     l: true,
   });
+
+  useEffect(() => {
+    if (winner && onGameEnd && !hasRecordedRef.current) {
+      hasRecordedRef.current = true;
+      const winnerCode = winner === 'draw' ? 'draw' : winner === userColor ? 'w' : 'b';
+      onGameEnd(winnerCode, 'reversi_majority_discs');
+    }
+  }, [winner, onGameEnd, userColor]);
+
+  const resetGame = () => {
+    hasRecordedRef.current = false;
+    setBoard(createInitialBoard());
+    setTurn('d');
+    setWinner(null);
+    setPassedCount(0);
+  };
 
   // Directions for outflanking
   const DIRECTIONS = [
@@ -76,13 +94,6 @@ export const ReversiBoard: React.FC<ReversiBoardProps> = ({ gameMode: initialMod
   };
 
   const currentValidMoves = getValidMoves(board, turn);
-
-  const resetGame = () => {
-    setBoard(createInitialBoard());
-    setTurn('d');
-    setWinner(null);
-    setPassedCount(0);
-  };
 
   const handleCellClick = (r: number, c: number) => {
     if (winner) return;

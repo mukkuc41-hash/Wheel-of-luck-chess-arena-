@@ -244,17 +244,6 @@ const GAME_PUZZLES: Record<ActiveBoardGame, GenericPuzzle[]> = {
       explanation: 'Clears final hand cards instantly to win the Speed race!',
     },
   ],
-  findthenumber: [
-    {
-      id: 'ftn1',
-      game: 'findthenumber',
-      title: 'Palm Scan & Grid Blitz',
-      category: 'Visual Speed',
-      objective: 'Locate target number 77 on the palm and fill cross grid in sub-5s.',
-      solution: 'Tap node 77 on lower palm and tap 25 grid boxes in sequence',
-      explanation: 'Optimal peripheral visual scanning technique minimizes eye saccades.',
-    },
-  ],
   carrom: [
     {
       id: 'carrom1',

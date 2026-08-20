@@ -13,6 +13,7 @@ export interface LudoToken {
 
 interface LudoBoardProps {
   gameMode?: 'pvp' | 'ai' | 'local';
+  onGameEnd?: (winner: 'w' | 'b' | 'draw', reason?: string) => void;
 }
 
 const PLAYER_COLORS: LudoColor[] = ['blue', 'green', 'yellow', 'red'];
@@ -256,7 +257,7 @@ const LudoPawn: React.FC<{
   );
 };
 
-export const LudoBoard: React.FC<LudoBoardProps> = ({ gameMode = 'ai' }) => {
+export const LudoBoard: React.FC<LudoBoardProps> = ({ gameMode = 'ai', onGameEnd }) => {
   // Player count & AI setup
   const [playerCount, setPlayerCount] = useState<2 | 3 | 4>(4);
   const [userColor, setUserColor] = useState<LudoColor>('red');
@@ -304,8 +305,18 @@ export const LudoBoard: React.FC<LudoBoardProps> = ({ gameMode = 'ai' }) => {
   const [hasRolled, setHasRolled] = useState<boolean>(false);
   const [winner, setWinner] = useState<LudoColor | null>(null);
   const [eventMessage, setEventMessage] = useState<string | null>(null);
+  const hasRecordedRef = React.useRef(false);
+
+  useEffect(() => {
+    if (winner && onGameEnd && !hasRecordedRef.current) {
+      hasRecordedRef.current = true;
+      const winnerCode = winner === userColor ? 'w' : 'b';
+      onGameEnd(winnerCode, 'ludo_home_stretch_complete');
+    }
+  }, [winner, onGameEnd, userColor]);
 
   const resetGame = () => {
+    hasRecordedRef.current = false;
     setTokens(createInitialTokens());
     setCurrentTurn('red');
     setDiceValue(null);

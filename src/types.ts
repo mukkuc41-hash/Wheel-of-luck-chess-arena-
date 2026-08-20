@@ -21,14 +21,13 @@ export type ActiveBoardGame =
   | 'hearts'
   | 'ginrummy'
   | 'speed'
-  | 'findthenumber'
   | 'carrom';
 
 export type TimeControlPreset = 'untimed' | '3+2' | '5+3' | '10+0' | '15+10' | 'custom';
 
 export interface PlayerInfo {
   name: string;
-  avatar: string;
+  avatar?: string;
   rating?: number;
   isOwner?: boolean;
 }
@@ -107,7 +106,7 @@ export interface ChessVariantRecord {
 
 export type GameResult = {
   winner: 'w' | 'b' | 'draw' | null;
-  reason: 'checkmate' | 'timeout' | 'resignation' | 'stalemate' | 'threefold' | 'insufficient' | 'agreement' | null;
+  reason: 'checkmate' | 'timeout' | 'resignation' | 'stalemate' | 'threefold' | 'insufficient' | 'agreement' | string | null;
 };
 
 export type AIDifficultyLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;

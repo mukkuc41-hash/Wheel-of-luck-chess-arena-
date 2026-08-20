@@ -6,12 +6,13 @@ import { GameOptionsControlPanel } from './GameOptionsControlPanel';
 
 interface GinRummyBoardProps {
   gameMode?: 'pvp' | 'ai' | 'local';
+  onGameEnd?: (winner: 'w' | 'b' | 'draw', reason?: string) => void;
 }
 
 type Suit = '♠' | '♥' | '♦' | '♣';
 type Card = { id: string; suit: Suit; rank: number; rankStr: string };
 
-export const GinRummyBoard: React.FC<GinRummyBoardProps> = ({ gameMode: initialMode = 'ai' }) => {
+export const GinRummyBoard: React.FC<GinRummyBoardProps> = ({ gameMode: initialMode = 'ai', onGameEnd }) => {
   const SUITS: Suit[] = ['♠', '♥', '♦', '♣'];
   const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 
@@ -49,8 +50,18 @@ export const GinRummyBoard: React.FC<GinRummyBoardProps> = ({ gameMode: initialM
   const [aiScore, setAiScore] = useState<number>(0);
   const [winner, setWinner] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState<string>('Draw 1 card from Stock or Discard pile.');
+  const hasRecordedRef = React.useRef(false);
+
+  useEffect(() => {
+    if (winner && onGameEnd && !hasRecordedRef.current) {
+      hasRecordedRef.current = true;
+      const winnerCode = winner.includes('Player') || winner.includes('You') ? 'w' : 'b';
+      onGameEnd(winnerCode, 'gin_rummy_undercut_penalty');
+    }
+  }, [winner, onGameEnd]);
 
   const setupRound = () => {
+    hasRecordedRef.current = false;
     const deck = createDeck();
     const pHand = deck.splice(0, 10);
     const aHand = deck.splice(0, 10);

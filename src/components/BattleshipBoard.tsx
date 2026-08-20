@@ -6,11 +6,12 @@ import { GameOptionsControlPanel } from './GameOptionsControlPanel';
 
 interface BattleshipBoardProps {
   gameMode?: 'pvp' | 'ai' | 'local';
+  onGameEnd?: (winner: 'w' | 'b' | 'draw', reason?: string) => void;
 }
 
 type Ship = { name: string; size: number; coords: { r: number; c: number }[]; hits: number };
 
-export const BattleshipBoard: React.FC<BattleshipBoardProps> = ({ gameMode: initialMode = 'ai' }) => {
+export const BattleshipBoard: React.FC<BattleshipBoardProps> = ({ gameMode: initialMode = 'ai', onGameEnd }) => {
   const GRID_SIZE = 10;
   const SHIP_SPECS = [
     { name: 'Carrier', size: 5 },
@@ -35,6 +36,7 @@ export const BattleshipBoard: React.FC<BattleshipBoardProps> = ({ gameMode: init
   const [turn, setTurn] = useState<'player' | 'enemy'>('player');
   const [winner, setWinner] = useState<'player' | 'enemy' | null>(null);
   const [statusMsg, setStatusMsg] = useState<string>('Fleet Deployment Phase');
+  const hasRecordedRef = React.useRef(false);
 
   // Options state
   const [userSide, setUserSide] = useState<'cyan' | 'red'>('cyan');
@@ -42,6 +44,14 @@ export const BattleshipBoard: React.FC<BattleshipBoardProps> = ({ gameMode: init
     cyan: false,
     red: true,
   });
+
+  useEffect(() => {
+    if (winner && onGameEnd && !hasRecordedRef.current) {
+      hasRecordedRef.current = true;
+      const winnerCode = winner === 'player' ? 'w' : 'b';
+      onGameEnd(winnerCode, 'battleship_fleet_sunk');
+    }
+  }, [winner, onGameEnd]);
 
   // Random ship placement helper
   const generateRandomShips = (): { grid: ('S' | null)[][]; ships: Ship[] } => {
