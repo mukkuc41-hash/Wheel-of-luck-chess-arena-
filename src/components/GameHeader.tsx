@@ -248,6 +248,26 @@ const GAME_BRANDING: Record<
     accentGlow: 'shadow-[0_0_15px_rgba(245,158,11,0.4)]',
     playerSlots: '1-2 Players',
   },
+  darts: {
+    title: 'Darts Championship',
+    subtitle: 'London 501 Arena',
+    icon: '🎯',
+    bgGradient: 'bg-red-600',
+    borderColor: 'border-red-400/30',
+    textColor: 'text-red-300',
+    accentGlow: 'shadow-[0_0_15px_rgba(239,68,68,0.4)]',
+    playerSlots: '1-2 Players',
+  },
+  pingpong: {
+    title: 'Ping Pong Classic',
+    subtitle: 'Paddle Rally Arena',
+    icon: '🏓',
+    bgGradient: 'bg-emerald-600',
+    borderColor: 'border-emerald-400/30',
+    textColor: 'text-emerald-300',
+    accentGlow: 'shadow-[0_0_15px_rgba(16,185,129,0.4)]',
+    playerSlots: '1-2 Players',
+  },
 };
 
 export const GameHeader: React.FC<GameHeaderProps> = ({

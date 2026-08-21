@@ -255,6 +255,28 @@ const GAME_PUZZLES: Record<ActiveBoardGame, GenericPuzzle[]> = {
       explanation: 'Utilizes rebound angle of incidence equal to angle of reflection to sink the Queen!',
     },
   ],
+  darts: [
+    {
+      id: 'darts1',
+      game: 'darts',
+      title: '170 Maximum Big Fish Checkout',
+      category: '501 Math & Precision',
+      objective: 'Hit the highest possible 3-dart checkout in 501 Darts: Triple 20, Triple 20, and Double Bullseye!',
+      solution: 'T20 (60) + T20 (60) + Bull (50) = 170',
+      explanation: 'The iconic 170 finish requires two precision Triple 20s and the dead-center 50 Double Bullseye!',
+    },
+  ],
+  pingpong: [
+    {
+      id: 'pingpong1',
+      game: 'pingpong',
+      title: 'Topspin Smash Counter',
+      category: 'Reaction & Angle',
+      objective: 'Position paddle at sharp downward angle during heavy loop drive to produce an unreturnable cross-court smash.',
+      solution: 'Quick flick angled 45° left with high velocity',
+      explanation: 'Re-directs incoming ball momentum into a terminal flat smash landing on the corner white line!',
+    },
+  ],
 };
 
 export const PuzzleModal: React.FC<PuzzleModalProps> = ({ activeBoardGame = 'chess', isOpen, onClose }) => {

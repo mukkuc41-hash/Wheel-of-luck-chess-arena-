@@ -403,6 +403,44 @@ export const MultiGameHubModal: React.FC<MultiGameHubModalProps> = ({
         if (onSelectGame) onSelectGame('carrom');
       },
     },
+    {
+      id: 'darts-champ',
+      category: 'board',
+      title: '18. Darts Championship',
+      subtitle: 'Official London Board & 501',
+      description: 'Precision target aiming and scoring rings. 501 / 301 Countdown, Around the Clock & High Score Blitz with breathing sway physics, triple/double multipliers and AI bot!',
+      badge: 'Sports & Precision 🎯',
+      badgeColor: 'bg-red-500/20 text-red-300 border-red-400/30',
+      icon: <span className="text-2xl">🎯</span>,
+      gradient: 'from-red-950/50 via-amber-950/30 to-slate-950/60',
+      borderColor: 'border-red-500/40 hover:border-red-400',
+      actionText: 'Play Darts',
+      actionIcon: <Play className="w-4 h-4 fill-current" />,
+      actionBg: 'bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-bold',
+      onClick: () => {
+        onClose();
+        if (onSelectGame) onSelectGame('darts');
+      },
+    },
+    {
+      id: 'pingpong-classic',
+      category: 'board',
+      title: '19. Ping Pong Classic',
+      subtitle: 'Fast-Paced Paddle Rally Arena',
+      description: 'Fast-paced table tennis rally with ball physics, paddle slice curves, smash power mechanics, rally streak tracking, and AI opponent!',
+      badge: 'Sports & Precision 🏓',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
+      icon: <span className="text-2xl">🏓</span>,
+      gradient: 'from-emerald-950/50 via-cyan-950/30 to-slate-950/60',
+      borderColor: 'border-emerald-500/40 hover:border-emerald-400',
+      actionText: 'Play Ping Pong',
+      actionIcon: <Play className="w-4 h-4 fill-current" />,
+      actionBg: 'bg-gradient-to-r from-emerald-600 to-cyan-500 hover:from-emerald-500 hover:to-cyan-400 text-white font-bold',
+      onClick: () => {
+        onClose();
+        if (onSelectGame) onSelectGame('pingpong');
+      },
+    },
   ];
 
   const filteredGames = games.filter((game) => {

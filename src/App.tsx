@@ -52,6 +52,9 @@ import { HeartsBoard } from './components/HeartsBoard';
 import { GinRummyBoard } from './components/GinRummyBoard';
 import { SpeedBoard } from './components/SpeedBoard';
 import { CarromBoard } from './components/CarromBoard';
+import { DartsBoard } from './components/DartsBoard';
+import { PingPongBoard } from './components/PingPongBoard';
+import { ArcadeCanvasModal } from './components/ArcadeCanvasModal';
 import { GameBarSelector } from './components/GameBarSelector';
 import { GameOptionsControlPanel } from './components/GameOptionsControlPanel';
 import { GameRulesModal } from './components/GameRulesModal';
@@ -76,7 +79,7 @@ import { evaluateBoard } from './utils/evalEngine';
 import { detectOpening } from './utils/openingBook';
 import { recordPlayerCaptureForHatrick, updateQuestProgress, applyMatchLossPenalty } from './utils/pointsManager';
 
-import { RotateCcw, BookOpen, Wand2, ShieldAlert, Flame, Sliders, History, Sparkles } from 'lucide-react';
+import { RotateCcw, BookOpen, Wand2, ShieldAlert, Flame, Sliders, History, Sparkles, Gamepad2 } from 'lucide-react';
 import { layoutToFen } from './utils/variantManager';
 import { soundFx } from './utils/audio';
 import {
@@ -178,6 +181,7 @@ export default function App() {
   const [privacyModalTab, setPrivacyModalTab] = useState<'privacy' | 'terms' | 'appflow'>('privacy');
   const [isTelemetryOpen, setIsTelemetryOpen] = useState<boolean>(false);
   const [isGoogleAuthOpen, setIsGoogleAuthOpen] = useState<boolean>(false);
+  const [isArcadeCanvasOpen, setIsArcadeCanvasOpen] = useState<boolean>(false);
 
   // Settings & Configuration
   const [settings, setSettings] = useState<GameSettings>(defaultSettings);
@@ -1406,8 +1410,26 @@ export default function App() {
             </div>
           )}
 
-          {/* Action Row: Reset, Rules, 96 FX Hub & Motion Library */}
-          <div className="w-full max-w-[580px] grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
+          {activeBoardGame === 'darts' && (
+            <div className="w-full animate-fadeIn">
+              <DartsBoard
+                gameMode={gameMode}
+                onGameEnd={(w, reason) => handleBoardGameEnd('darts', w, reason)}
+              />
+            </div>
+          )}
+
+          {activeBoardGame === 'pingpong' && (
+            <div className="w-full animate-fadeIn">
+              <PingPongBoard
+                gameMode={gameMode}
+                onGameEnd={(w, reason) => handleBoardGameEnd('pingpong', w, reason)}
+              />
+            </div>
+          )}
+
+          {/* Action Row: Reset, Rules, Arcade Booth, 96 FX Hub & Motion Library */}
+          <div className="w-full max-w-[580px] grid grid-cols-2 sm:grid-cols-5 gap-2 mt-2">
             <button
               onClick={resetGame}
               className="py-2.5 px-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-white font-bold text-xs border border-white/10 hover:border-amber-400/40 shadow-lg transition active:scale-95 flex items-center justify-center gap-1.5"
@@ -1425,19 +1447,27 @@ export default function App() {
             </button>
 
             <button
+              onClick={() => setIsArcadeCanvasOpen(true)}
+              className="py-2.5 px-3 rounded-2xl bg-gradient-to-r from-amber-500/30 via-red-500/30 to-amber-500/30 hover:from-amber-500/40 hover:to-red-500/40 text-amber-200 font-black text-xs border border-amber-400/50 shadow-lg shadow-amber-500/10 transition active:scale-95 flex items-center justify-center gap-1.5"
+            >
+              <Gamepad2 className="w-4 h-4 text-amber-400 animate-pulse" />
+              <span>🕹️ Arcade</span>
+            </button>
+
+            <button
               onClick={() => setIsMasterHubOpen(true)}
               className="py-2.5 px-3 rounded-2xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-emerald-200 font-extrabold text-xs border border-emerald-400/40 shadow-lg transition active:scale-95 flex items-center justify-center gap-1.5"
             >
-              <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse" />
-              <span>96 FX Hub</span>
+              <Sparkles className="w-4 h-4 text-emerald-400" />
+              <span>96 FX</span>
             </button>
 
             <button
               onClick={() => setIsAnimationLibraryOpen(true)}
-              className="py-2.5 px-3 rounded-2xl bg-gradient-to-r from-cyan-500/20 to-indigo-500/20 hover:from-cyan-500/30 hover:to-indigo-500/30 text-cyan-200 font-extrabold text-xs border border-cyan-400/40 shadow-lg transition active:scale-95 flex items-center justify-center gap-1.5"
+              className="py-2.5 px-3 rounded-2xl bg-gradient-to-r from-cyan-500/20 to-indigo-500/20 hover:from-cyan-500/30 hover:to-indigo-500/30 text-cyan-200 font-extrabold text-xs border border-cyan-400/40 shadow-lg transition active:scale-95 flex items-center justify-center gap-1.5 col-span-2 sm:col-span-1"
             >
               <Wand2 className="w-4 h-4 text-cyan-300" />
-              <span>✨ VFX Engine</span>
+              <span>✨ VFX</span>
             </button>
           </div>
 
@@ -1823,6 +1853,17 @@ export default function App() {
         isOpen={isRulesModalOpen}
         onClose={() => setIsRulesModalOpen(false)}
         activeGame={activeBoardGame}
+      />
+
+      {/* 2D Canvas Arcade Engine & Retro Booth Modal */}
+      <ArcadeCanvasModal
+        isOpen={isArcadeCanvasOpen}
+        onClose={() => setIsArcadeCanvasOpen(false)}
+        onLaunchFullGame={(game) => {
+          setActiveBoardGame(game);
+          setIsArcadeCanvasOpen(false);
+        }}
+        initialGame={activeBoardGame}
       />
 
       {/* Master Web Animation & Transition Library Modal */}

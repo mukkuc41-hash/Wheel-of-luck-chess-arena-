@@ -21,7 +21,9 @@ export type ActiveBoardGame =
   | 'hearts'
   | 'ginrummy'
   | 'speed'
-  | 'carrom';
+  | 'carrom'
+  | 'darts'
+  | 'pingpong';
 
 export type TimeControlPreset = 'untimed' | '3+2' | '5+3' | '10+0' | '15+10' | 'custom';
 

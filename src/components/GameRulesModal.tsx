@@ -281,6 +281,34 @@ export const GameRulesModal: React.FC<GameRulesModalProps> = ({
               </ul>
             </div>
           )}
+
+          {activeGame === 'darts' && (
+            <div className="space-y-3">
+              <div className="p-3 bg-red-500/10 border border-red-400/30 rounded-2xl text-red-200 font-bold">
+                Objective: Reduce your score to exactly 0 or complete the clock!
+              </div>
+              <ul className="space-y-1.5 pl-2">
+                <li>• <strong>501 / 301 Countdown:</strong> Throw 3 darts per turn. Subtract scored points from total. First to reach exactly 0 wins!</li>
+                <li>• <strong>Bust Rule:</strong> If you score more points than remaining (negative score), your turn busts and score resets to the start of the turn.</li>
+                <li>• <strong>Multipliers:</strong> Inner Bullseye = 50 pts, Outer Bull = 25 pts, Triple Ring = 3x sector value (e.g. Triple 20 = 60 pts!), Double Ring = 2x.</li>
+                <li>• <strong>Around the Clock:</strong> Hit sectors 1 to 20 sequentially, ending with Bullseye.</li>
+              </ul>
+            </div>
+          )}
+
+          {activeGame === 'pingpong' && (
+            <div className="space-y-3">
+              <div className="p-3 bg-emerald-500/10 border border-emerald-400/30 rounded-2xl text-emerald-200 font-bold">
+                Objective: Score points by rallying the ball past opponent's paddle!
+              </div>
+              <ul className="space-y-1.5 pl-2">
+                <li>• <strong>Scoring:</strong> Win the rally if opponent misses the table or fails to return the ball across the net. First to 11 (or 21) points wins!</li>
+                <li>• <strong>Paddle Physics:</strong> Hit the ball with paddle edges to apply heavy angle deflection and spin.</li>
+                <li>• <strong>Smash Mechanics:</strong> Move paddle with rapid velocity during impact to deliver a blazing smash return.</li>
+                <li>• <strong>Game Modes:</strong> Play against intelligent AI Bots, 2P Pass &amp; Play, or endless Solo Wall rally practice.</li>
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Footer */}

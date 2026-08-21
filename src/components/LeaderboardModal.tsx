@@ -46,6 +46,8 @@ const GAME_NAMES: Record<ActiveBoardGame, string> = {
   ginrummy: 'Gin Rummy',
   speed: 'Speed Spit',
   carrom: 'Carrom Board',
+  darts: 'Darts Championship',
+  pingpong: 'Ping Pong Classic',
 };
 
 const GAME_ICONS: Record<ActiveBoardGame, string> = {
@@ -66,13 +68,15 @@ const GAME_ICONS: Record<ActiveBoardGame, string> = {
   ginrummy: '🎴',
   speed: '⚡',
   carrom: '🥏',
+  darts: '🎯',
+  pingpong: '🏓',
 };
 
 const ALL_GAMES: ActiveBoardGame[] = [
   'chess', 'checkers', 'backgammon', 'snakes', 'ludo', 'gomoku',
   'reversi', 'connect4', 'ultimatetictactoe', 'dotsandboxes',
   'battleship', 'sim', 'uno', 'hearts', 'ginrummy', 'speed',
-  'carrom'
+  'carrom', 'darts', 'pingpong'
 ];
 
 // Seeded mock stats per game if backend data array is empty
@@ -135,6 +139,14 @@ const SEEDED_LEADERBOARDS: Record<ActiveBoardGame, LeaderboardUser[]> = {
   ],
   carrom: [
     { username: 'StrikerLegend_Raj', score: 2310, times_played: 60, wins: 55, losses: 5, draws: 0, resigns: 0, total_time_seconds: 13200, totalGames: 60, winRate: 92, global_rank: 1, lastActive: Date.now() },
+  ],
+  darts: [
+    { username: 'Bullseye_Sniper', score: 2390, times_played: 68, wins: 62, losses: 6, draws: 0, resigns: 0, total_time_seconds: 14200, totalGames: 68, winRate: 91, global_rank: 1, lastActive: Date.now() },
+    { username: 'Triple20_Phil', score: 2160, times_played: 49, wins: 41, losses: 8, draws: 0, resigns: 1, total_time_seconds: 9800, totalGames: 49, winRate: 84, global_rank: 2, lastActive: Date.now() - 1800000 },
+  ],
+  pingpong: [
+    { username: 'SpinMaster_Ma', score: 2420, times_played: 72, wins: 66, losses: 6, draws: 0, resigns: 0, total_time_seconds: 15800, totalGames: 72, winRate: 92, global_rank: 1, lastActive: Date.now() },
+    { username: 'PaddleAce_Timo', score: 2210, times_played: 55, wins: 47, losses: 8, draws: 0, resigns: 0, total_time_seconds: 11900, totalGames: 55, winRate: 85, global_rank: 2, lastActive: Date.now() - 4200000 },
   ],
 };
 

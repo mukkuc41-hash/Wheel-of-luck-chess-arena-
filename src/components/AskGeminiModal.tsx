@@ -162,6 +162,22 @@ const GAME_AI_CONFIGS: Record<
       { label: 'Queen Cover Strategy', query: 'What is the highest percentage method to pocket and cover the Red Queen?', icon: <Sparkles className="w-3.5 h-3.5 text-red-400" /> },
     ],
   },
+  darts: {
+    title: 'Darts Pro AI',
+    badge: 'Precision Coach',
+    presets: [
+      { label: '501 Checkout Routes', query: 'What is the optimal double-out combination route for a remaining score of 121 in 501 Darts?', icon: <Target className="w-3.5 h-3.5 text-red-400" /> },
+      { label: 'Triple 20 Grouping', query: 'What aiming adjustment counters vertical breathing sway when targeting the Triple 20 bed?', icon: <Sparkles className="w-3.5 h-3.5 text-amber-400" /> },
+    ],
+  },
+  pingpong: {
+    title: 'Ping Pong Master AI',
+    badge: 'Rally Coach',
+    presets: [
+      { label: 'Topspin & Slice Physics', query: 'How does paddle angle of impact generate heavy sidespin and curve trajectories?', icon: <Zap className="w-3.5 h-3.5 text-cyan-400" /> },
+      { label: 'Smash Counter Tactics', query: 'What paddle positioning is most effective at returning high-velocity smash drives?', icon: <Sparkles className="w-3.5 h-3.5 text-emerald-400" /> },
+    ],
+  },
 };
 
 export const AskGeminiModal: React.FC<AskGeminiModalProps> = ({
