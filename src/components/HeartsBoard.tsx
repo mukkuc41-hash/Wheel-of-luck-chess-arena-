@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { RotateCcw, Trophy, Heart, Shield, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { soundFx } from '../utils/audio';
-import { GameOptionsControlPanel } from './GameOptionsControlPanel';
+import { BotAISettingsBar } from './BotAISettingsBar';
 
 interface HeartsBoardProps {
   gameMode?: 'pvp' | 'ai' | 'local';
@@ -16,15 +16,10 @@ export const HeartsBoard: React.FC<HeartsBoardProps> = ({ gameMode: initialMode 
   const SUITS: Suit[] = ['♠', '♥', '♦', '♣'];
   const RANKS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
 
-  // Options state
-  const [playerCount, setPlayerCount] = useState<number>(4);
-  const [userColor, setUserColor] = useState<string>('p1');
-  const [aiPlayers, setAiPlayers] = useState<Record<string, boolean>>({
-    p1: false,
-    p2: true,
-    p3: true,
-    p4: true,
-  });
+  const [opponentType, setOpponentType] = useState<'pvp' | 'ai'>(
+    initialMode === 'local' || initialMode === 'pvp' ? 'pvp' : 'ai'
+  );
+  const [aiDifficulty, setAiDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
 
   const createDeck = (): Card[] => {
     const deck: Card[] = [];
@@ -171,6 +166,7 @@ export const HeartsBoard: React.FC<HeartsBoardProps> = ({ gameMode: initialMode 
   // AI Bots Automatic Turn Execution
   useEffect(() => {
     if (turn !== 0 && !roundEnded && hands[turn] && hands[turn].length > 0 && currentTrick.length < 4) {
+      const delay = aiDifficulty === 'easy' ? 850 : aiDifficulty === 'medium' ? 600 : 400;
       const timer = setTimeout(() => {
         const botHand = hands[turn];
         const leadCard = currentTrick.length > 0 ? currentTrick[0].card : null;
@@ -181,57 +177,40 @@ export const HeartsBoard: React.FC<HeartsBoardProps> = ({ gameMode: initialMode 
           if (sameSuit.length > 0) playable = sameSuit;
         }
 
-        const chosen = playable[Math.floor(Math.random() * playable.length)];
+        let chosen: Card;
+        if (aiDifficulty === 'hard') {
+          // If cannot follow suit, discard dangerous Queen of Spades or highest Heart
+          if (leadCard && !botHand.some(c => c.suit === leadCard.suit)) {
+            const qs = playable.find(c => c.suit === '♠' && c.value === 12);
+            const highHeart = playable.filter(c => c.suit === '♥').sort((a,b) => b.value - a.value)[0];
+            chosen = qs || highHeart || playable.sort((a,b) => b.value - a.value)[0];
+          } else {
+            // Play lowest possible winning or ducking card
+            chosen = playable.sort((a,b) => a.value - b.value)[0];
+          }
+        } else {
+          chosen = playable[Math.floor(Math.random() * playable.length)];
+        }
+
         playCard(turn, chosen);
-      }, 600);
+      }, delay);
 
       return () => clearTimeout(timer);
     }
-  }, [turn, currentTrick, hands, roundEnded]);
+  }, [turn, currentTrick, hands, roundEnded, aiDifficulty]);
 
   return (
     <div className="flex flex-col items-center gap-4 w-full max-w-[620px] mx-auto p-4 bg-slate-900/90 border border-pink-500/30 rounded-3xl shadow-2xl backdrop-blur-md">
-      {/* Universal Options Selector Panel */}
-      <GameOptionsControlPanel
-        playerCountOptions={[4]}
-        playerCount={4}
-        userColorId={userColor}
-        onUserColorChange={(id) => setUserColor(id)}
-        playerSlots={[
-          {
-            id: 'p1',
-            name: 'Player 1 (You)',
-            colorHex: '#ec4899',
-            isAi: aiPlayers.p1,
-            isUser: userColor === 'p1',
-            onToggleAi: () => setAiPlayers(prev => ({ ...prev, p1: !prev.p1 })),
-          },
-          {
-            id: 'p2',
-            name: 'Bot 1 (P2)',
-            colorHex: '#3b82f6',
-            isAi: aiPlayers.p2,
-            isUser: userColor === 'p2',
-            onToggleAi: () => setAiPlayers(prev => ({ ...prev, p2: !prev.p2 })),
-          },
-          {
-            id: 'p3',
-            name: 'Bot 2 (P3)',
-            colorHex: '#10b981',
-            isAi: aiPlayers.p3,
-            isUser: userColor === 'p3',
-            onToggleAi: () => setAiPlayers(prev => ({ ...prev, p3: !prev.p3 })),
-          },
-          {
-            id: 'p4',
-            name: 'Bot 3 (P4)',
-            colorHex: '#a855f7',
-            isAi: aiPlayers.p4,
-            isUser: userColor === 'p4',
-            onToggleAi: () => setAiPlayers(prev => ({ ...prev, p4: !prev.p4 })),
-          },
-        ]}
-        onResetGame={setupRound}
+      {/* Uniform AI & Opponent Bar */}
+      <BotAISettingsBar
+        opponentType={opponentType}
+        onOpponentTypeChange={(t) => {
+          setOpponentType(t === 'solo' ? 'pvp' : t);
+          setupRound();
+        }}
+        aiDifficulty={aiDifficulty}
+        onAiDifficultyChange={(d) => setAiDifficulty(d)}
+        statusMessage={statusMsg}
       />
 
       {/* Header */}

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { RotateCcw, Trophy, Zap, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { soundFx } from '../utils/audio';
-import { GameOptionsControlPanel } from './GameOptionsControlPanel';
+import { BotAISettingsBar } from './BotAISettingsBar';
 
 interface SpeedBoardProps {
   gameMode?: 'pvp' | 'ai' | 'local';
@@ -16,12 +16,12 @@ export const SpeedBoard: React.FC<SpeedBoardProps> = ({ gameMode: initialMode = 
   const SUITS: Suit[] = ['♠', '♥', '♦', '♣'];
   const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 
-  // Options state
-  const [userSide, setUserSide] = useState<'amber' | 'purple'>('amber');
-  const [aiPlayers, setAiPlayers] = useState<Record<'amber' | 'purple', boolean>>({
-    amber: false,
-    purple: true,
-  });
+  const [opponentType, setOpponentType] = useState<'pvp' | 'ai'>(
+    initialMode === 'local' || initialMode === 'pvp' ? 'pvp' : 'ai'
+  );
+  const [aiDifficulty, setAiDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+  const [p2Hand, setP2Hand] = useState<Card[]>([]);
+  const [p2Deck, setP2Deck] = useState<Card[]>([]);
 
   const createDeck = (): Card[] => {
     const deck: Card[] = [];
@@ -160,12 +160,17 @@ export const SpeedBoard: React.FC<SpeedBoardProps> = ({ gameMode: initialMode = 
     setStatusMsg('FLIPPED new central cards!');
   };
 
-  // AI Real-Time Fast Play Loop
+  // AI Real-Time Fast Play Loop with difficulty scaling
   useEffect(() => {
-    if (winner) return;
+    if (winner || opponentType !== 'ai') return;
+
+    const delay = aiDifficulty === 'easy' ? 1800 : aiDifficulty === 'medium' ? 1150 : 650;
 
     const interval = setInterval(() => {
       if (!pile1 || !pile2) return;
+
+      // In easy mode, AI occasionally hesitates
+      if (aiDifficulty === 'easy' && Math.random() < 0.25) return;
 
       for (const card of aiHand) {
         if (isValidPlay(card, pile1)) {
@@ -176,46 +181,23 @@ export const SpeedBoard: React.FC<SpeedBoardProps> = ({ gameMode: initialMode = 
           break;
         }
       }
-    }, 1200);
+    }, delay);
 
     return () => clearInterval(interval);
-  }, [aiHand, pile1, pile2, winner]);
+  }, [aiDifficulty, aiHand, opponentType, pile1, pile2, winner]);
 
   return (
     <div className="flex flex-col items-center gap-4 w-full max-w-[620px] mx-auto p-4 bg-slate-900/90 border border-yellow-500/30 rounded-3xl shadow-2xl backdrop-blur-md">
-      {/* Universal Options Selector Panel */}
-      <GameOptionsControlPanel
-        playerCountOptions={[2]}
-        playerCount={2}
-        userColorId={userSide}
-        onUserColorChange={(id) => {
-          const col = id as 'amber' | 'purple';
-          setUserSide(col);
-          setAiPlayers({
-            amber: col === 'purple',
-            purple: col === 'amber',
-          });
+      {/* Uniform AI & Opponent Bar */}
+      <BotAISettingsBar
+        opponentType={opponentType}
+        onOpponentTypeChange={(t) => {
+          setOpponentType(t === 'solo' ? 'pvp' : t);
           resetGame();
         }}
-        playerSlots={[
-          {
-            id: 'amber',
-            name: 'Gold Deck (P1)',
-            colorHex: '#f59e0b',
-            isAi: aiPlayers.amber,
-            isUser: userSide === 'amber',
-            onToggleAi: () => setAiPlayers(prev => ({ ...prev, amber: !prev.amber })),
-          },
-          {
-            id: 'purple',
-            name: 'Purple Deck (P2)',
-            colorHex: '#a855f7',
-            isAi: aiPlayers.purple,
-            isUser: userSide === 'purple',
-            onToggleAi: () => setAiPlayers(prev => ({ ...prev, purple: !prev.purple })),
-          },
-        ]}
-        onResetGame={resetGame}
+        aiDifficulty={aiDifficulty}
+        onAiDifficultyChange={(d) => setAiDifficulty(d)}
+        statusMessage={statusMsg}
       />
 
       {/* Header */}

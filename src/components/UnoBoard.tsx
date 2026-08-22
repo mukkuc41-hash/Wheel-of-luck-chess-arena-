@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { RotateCcw, Trophy, Bot, Sparkles, Layers, Flame } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { soundFx } from '../utils/audio';
-import { GameOptionsControlPanel } from './GameOptionsControlPanel';
+import { BotAISettingsBar } from './BotAISettingsBar';
 
 interface UnoBoardProps {
   gameMode?: 'pvp' | 'ai' | 'local';
@@ -22,14 +22,10 @@ export const UnoBoard: React.FC<UnoBoardProps> = ({ gameMode: initialMode = 'ai'
   const COLORS: CardColor[] = ['red', 'blue', 'green', 'yellow'];
   const VALUES: CardValue[] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'Skip', 'Reverse', '+2'];
 
-  // Options state
-  const [playerCount, setPlayerCount] = useState<number>(2);
-  const [userColor, setUserColor] = useState<string>('p1');
-  const [aiPlayers, setAiPlayers] = useState<Record<string, boolean>>(() => {
-    const initial: Record<string, boolean> = { p1: false };
-    for (let i = 2; i <= 10; i++) initial[`p${i}`] = true;
-    return initial;
-  });
+  const [opponentType, setOpponentType] = useState<'pvp' | 'ai'>(
+    initialMode === 'local' || initialMode === 'pvp' ? 'pvp' : 'ai'
+  );
+  const [aiDifficulty, setAiDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
 
   const PLAYER_COLORS_LIST = [
     { id: 'p1', name: 'Red (P1)', hex: '#ef4444' },
@@ -205,25 +201,38 @@ export const UnoBoard: React.FC<UnoBoardProps> = ({ gameMode: initialMode = 'ai'
     setTurn('ai');
   };
 
-  // AI Turn Logic
+  // AI Turn Logic with difficulty
   useEffect(() => {
-    if (turn === 'ai' && !winner && discardPile.length > 0) {
+    if (turn === 'ai' && !winner && discardPile.length > 0 && opponentType === 'ai') {
+      const delay = aiDifficulty === 'easy' ? 950 : aiDifficulty === 'medium' ? 700 : 450;
       const timer = setTimeout(() => {
         const playable = aiHand.filter(isValidPlay);
 
         if (playable.length > 0) {
-          const chosen = playable[Math.floor(Math.random() * playable.length)];
+          let chosen: UnoCard;
+          if (aiDifficulty === 'hard') {
+            // Prioritize action cards if human player has 3 or fewer cards
+            const actionCard = playable.find(c => c.value === '+2' || c.value === '+4' || c.value === 'Skip' || c.value === 'Reverse');
+            if (playerHand.length <= 3 && actionCard) {
+              chosen = actionCard;
+            } else {
+              // Prefer non-wild matching colored cards first to save wilds
+              chosen = playable.find(c => c.color !== 'wild') || playable[0];
+            }
+          } else {
+            chosen = playable[Math.floor(Math.random() * playable.length)];
+          }
           playCard(chosen, false);
         } else {
           drawCards(false, 1);
-          setStatusMsg('AI Bot drew 1 card.');
+          setStatusMsg(`${aiDifficulty === 'easy' ? 'Easy Bot' : aiDifficulty === 'medium' ? 'Medium Bot' : 'Pro Bot'} drew 1 card.`);
           setTurn('player');
         }
-      }, 700);
+      }, delay);
 
       return () => clearTimeout(timer);
     }
-  }, [turn, winner, aiHand, discardPile, currentColor]);
+  }, [turn, winner, aiHand, discardPile, currentColor, opponentType, aiDifficulty, playerHand.length]);
 
   const getColorBg = (c: CardColor) => {
     switch (c) {
@@ -237,22 +246,16 @@ export const UnoBoard: React.FC<UnoBoardProps> = ({ gameMode: initialMode = 'ai'
 
   return (
     <div className="flex flex-col items-center gap-4 w-full max-w-[620px] mx-auto p-4 bg-slate-900/90 border border-red-500/30 rounded-3xl shadow-2xl backdrop-blur-md">
-      {/* Universal Options Selector Panel */}
-      <GameOptionsControlPanel
-        playerCountOptions={[2, 3, 4, 5, 6, 7, 8, 9, 10]}
-        playerCount={playerCount}
-        onPlayerCountChange={(num) => setPlayerCount(num)}
-        userColorId={userColor}
-        onUserColorChange={(id) => setUserColor(id)}
-        playerSlots={PLAYER_COLORS_LIST.slice(0, playerCount).map(item => ({
-          id: item.id,
-          name: item.name,
-          colorHex: item.hex,
-          isAi: !!aiPlayers[item.id],
-          isUser: userColor === item.id,
-          onToggleAi: () => setAiPlayers(prev => ({ ...prev, [item.id]: !prev[item.id] })),
-        }))}
-        onResetGame={resetGame}
+      {/* Uniform AI & Opponent Bar */}
+      <BotAISettingsBar
+        opponentType={opponentType}
+        onOpponentTypeChange={(t) => {
+          setOpponentType(t === 'solo' ? 'pvp' : t);
+          resetGame();
+        }}
+        aiDifficulty={aiDifficulty}
+        onAiDifficultyChange={(d) => setAiDifficulty(d)}
+        statusMessage={statusMsg}
       />
 
       {/* Header */}

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { RotateCcw, Trophy, Target, Shield, Crosshair } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { soundFx } from '../utils/audio';
-import { GameOptionsControlPanel } from './GameOptionsControlPanel';
+import { BotAISettingsBar } from './BotAISettingsBar';
 
 interface BattleshipBoardProps {
   gameMode?: 'pvp' | 'ai' | 'local';
@@ -20,6 +20,11 @@ export const BattleshipBoard: React.FC<BattleshipBoardProps> = ({ gameMode: init
     { name: 'Submarine', size: 3 },
     { name: 'Destroyer', size: 2 },
   ];
+
+  const [opponentType, setOpponentType] = useState<'pvp' | 'ai'>(
+    initialMode === 'local' || initialMode === 'pvp' ? 'pvp' : 'ai'
+  );
+  const [aiDifficulty, setAiDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
 
   // Grid states
   const [playerGrid, setPlayerGrid] = useState<( 'S' | 'H' | 'M' | null )[][]>(
@@ -160,22 +165,44 @@ export const BattleshipBoard: React.FC<BattleshipBoardProps> = ({ gameMode: init
     }
   };
 
-  // Enemy AI Turn
+  // Enemy AI Turn with difficulty
   useEffect(() => {
-    if (phase === 'battle' && turn === 'enemy' && !winner) {
+    if (phase === 'battle' && turn === 'enemy' && !winner && opponentType === 'ai') {
+      const delay = aiDifficulty === 'easy' ? 950 : aiDifficulty === 'medium' ? 700 : 450;
       const timer = setTimeout(() => {
         const availableCoords: { r: number; c: number }[] = [];
+        const adjacentToHits: { r: number; c: number }[] = [];
+
         for (let r = 0; r < GRID_SIZE; r++) {
           for (let c = 0; c < GRID_SIZE; c++) {
             if (playerGrid[r][c] !== 'H' && playerGrid[r][c] !== 'M') {
               availableCoords.push({ r, c });
+
+              // Check if adjacent to an existing Hit
+              const isAdj =
+                (r > 0 && playerGrid[r - 1][c] === 'H') ||
+                (r < GRID_SIZE - 1 && playerGrid[r + 1][c] === 'H') ||
+                (c > 0 && playerGrid[r][c - 1] === 'H') ||
+                (c < GRID_SIZE - 1 && playerGrid[r][c + 1] === 'H');
+
+              if (isAdj) adjacentToHits.push({ r, c });
             }
           }
         }
 
         if (availableCoords.length === 0) return;
 
-        const target = availableCoords[Math.floor(Math.random() * availableCoords.length)];
+        let target: { r: number; c: number };
+        if ((aiDifficulty === 'medium' || aiDifficulty === 'hard') && adjacentToHits.length > 0) {
+          target = adjacentToHits[Math.floor(Math.random() * adjacentToHits.length)];
+        } else if (aiDifficulty === 'hard') {
+          // Checkerboard parity hunting
+          const parityCoords = availableCoords.filter(pt => (pt.r + pt.c) % 2 === 0);
+          target = parityCoords.length > 0 ? parityCoords[Math.floor(Math.random() * parityCoords.length)] : availableCoords[Math.floor(Math.random() * availableCoords.length)];
+        } else {
+          target = availableCoords[Math.floor(Math.random() * availableCoords.length)];
+        }
+
         const newPlayerGrid = playerGrid.map(row => [...row]);
 
         if (newPlayerGrid[target.r][target.c] === 'S') {
@@ -198,55 +225,32 @@ export const BattleshipBoard: React.FC<BattleshipBoardProps> = ({ gameMode: init
             return;
           }
 
-          setStatusMsg('ALERT! Your ship was hit by enemy fire!');
+          setStatusMsg(`ALERT! Your ship was hit by ${aiDifficulty === 'easy' ? 'Easy Bot' : aiDifficulty === 'medium' ? 'Medium Bot' : 'Pro Bot'} fire!`);
         } else {
           newPlayerGrid[target.r][target.c] = 'M';
           setPlayerGrid(newPlayerGrid);
-          setStatusMsg('Enemy missile missed your fleet. Your turn to fire!');
+          setStatusMsg(`${aiDifficulty === 'easy' ? 'Easy Bot' : aiDifficulty === 'medium' ? 'Medium Bot' : 'Pro Bot'} missile missed. Your turn to fire!`);
         }
 
         setTurn('player');
-      }, 700);
+      }, delay);
 
       return () => clearTimeout(timer);
     }
-  }, [turn, phase, winner, playerGrid, playerShips]);
+  }, [turn, phase, winner, playerGrid, playerShips, opponentType, aiDifficulty]);
 
   return (
     <div className="flex flex-col items-center gap-4 w-full max-w-[660px] mx-auto p-4 bg-slate-900/90 border border-cyan-500/30 rounded-3xl shadow-2xl backdrop-blur-md">
-      {/* Universal Options Selector Panel */}
-      <GameOptionsControlPanel
-        playerCountOptions={[2]}
-        playerCount={2}
-        userColorId={userSide}
-        onUserColorChange={(id) => {
-          const s = id as 'cyan' | 'red';
-          setUserSide(s);
-          setAiPlayers({
-            cyan: s === 'red',
-            red: s === 'cyan',
-          });
+      {/* Uniform AI & Opponent Bar */}
+      <BotAISettingsBar
+        opponentType={opponentType}
+        onOpponentTypeChange={(t) => {
+          setOpponentType(t === 'solo' ? 'pvp' : t);
           resetGame();
         }}
-        playerSlots={[
-          {
-            id: 'cyan',
-            name: 'Cyan Fleet (P1)',
-            colorHex: '#06b6d4',
-            isAi: aiPlayers.cyan,
-            isUser: userSide === 'cyan',
-            onToggleAi: () => setAiPlayers(prev => ({ ...prev, cyan: !prev.cyan })),
-          },
-          {
-            id: 'red',
-            name: 'Red Fleet (P2)',
-            colorHex: '#ef4444',
-            isAi: aiPlayers.red,
-            isUser: userSide === 'red',
-            onToggleAi: () => setAiPlayers(prev => ({ ...prev, red: !prev.red })),
-          },
-        ]}
-        onResetGame={resetGame}
+        aiDifficulty={aiDifficulty}
+        onAiDifficultyChange={(d) => setAiDifficulty(d)}
+        statusMessage={statusMsg}
       />
 
       {/* Header */}

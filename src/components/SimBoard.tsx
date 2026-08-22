@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { RotateCcw, Trophy, Circle, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { soundFx } from '../utils/audio';
-import { GameOptionsControlPanel } from './GameOptionsControlPanel';
+import { BotAISettingsBar } from './BotAISettingsBar';
 
 interface SimBoardProps {
   gameMode?: 'pvp' | 'ai' | 'local';
@@ -13,6 +13,11 @@ type Edge = { id: string; u: number; v: number; color: 'red' | 'blue' | null };
 
 export const SimBoard: React.FC<SimBoardProps> = ({ gameMode: initialMode = 'ai', onGameEnd }) => {
   const NUM_DOTS = 6;
+
+  const [opponentType, setOpponentType] = useState<'pvp' | 'ai'>(
+    initialMode === 'local' || initialMode === 'pvp' ? 'pvp' : 'ai'
+  );
+  const [aiDifficulty, setAiDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
 
   const getDotCoords = () => {
     const coords: { x: number; y: number }[] = [];
@@ -115,9 +120,10 @@ export const SimBoard: React.FC<SimBoardProps> = ({ gameMode: initialMode = 'ai'
     setTurn(playerColor === 'red' ? 'blue' : 'red');
   };
 
-  // AI Logic
+  // AI Logic with difficulty
   useEffect(() => {
-    if (aiPlayers[turn] && !winner) {
+    if (turn === 'blue' && opponentType === 'ai' && !winner) {
+      const delay = aiDifficulty === 'easy' ? 750 : aiDifficulty === 'medium' ? 500 : 350;
       const timer = setTimeout(() => {
         const available = edges.filter(e => e.color === null);
         if (available.length === 0) return;
@@ -130,52 +136,35 @@ export const SimBoard: React.FC<SimBoardProps> = ({ gameMode: initialMode = 'ai'
           }
         }
 
-        const chosen = safeEdges.length > 0
-          ? safeEdges[Math.floor(Math.random() * safeEdges.length)]
-          : available[Math.floor(Math.random() * available.length)];
+        let chosen: Edge;
+        if (aiDifficulty === 'easy') {
+          // Easy bot occasionally doesn't check triangle loss
+          chosen = Math.random() < 0.4 ? available[Math.floor(Math.random() * available.length)] : (safeEdges.length > 0 ? safeEdges[0] : available[0]);
+        } else {
+          chosen = safeEdges.length > 0
+            ? safeEdges[Math.floor(Math.random() * safeEdges.length)]
+            : available[Math.floor(Math.random() * available.length)];
+        }
 
         makeMove(chosen.id, turn);
-      }, 500);
+      }, delay);
 
       return () => clearTimeout(timer);
     }
-  }, [turn, winner, edges, aiPlayers]);
+  }, [turn, winner, edges, opponentType, aiDifficulty]);
 
   return (
     <div className="flex flex-col items-center gap-4 w-full max-w-[540px] mx-auto p-4 bg-slate-900/90 border border-purple-500/30 rounded-3xl shadow-2xl backdrop-blur-md">
-      {/* Universal Options Selector Panel */}
-      <GameOptionsControlPanel
-        playerCountOptions={[2]}
-        playerCount={2}
-        userColorId={userColor}
-        onUserColorChange={(id) => {
-          const col = id as 'red' | 'blue';
-          setUserColor(col);
-          setAiPlayers({
-            red: col === 'blue',
-            blue: col === 'red',
-          });
+      {/* Uniform AI & Opponent Bar */}
+      <BotAISettingsBar
+        opponentType={opponentType}
+        onOpponentTypeChange={(t) => {
+          setOpponentType(t === 'solo' ? 'pvp' : t);
           resetGame();
         }}
-        playerSlots={[
-          {
-            id: 'red',
-            name: 'Red Lines',
-            colorHex: '#ef4444',
-            isAi: aiPlayers.red,
-            isUser: userColor === 'red',
-            onToggleAi: () => setAiPlayers(prev => ({ ...prev, red: !prev.red })),
-          },
-          {
-            id: 'blue',
-            name: 'Blue Lines',
-            colorHex: '#3b82f6',
-            isAi: aiPlayers.blue,
-            isUser: userColor === 'blue',
-            onToggleAi: () => setAiPlayers(prev => ({ ...prev, blue: !prev.blue })),
-          },
-        ]}
-        onResetGame={resetGame}
+        aiDifficulty={aiDifficulty}
+        onAiDifficultyChange={(d) => setAiDifficulty(d)}
+        statusMessage={winner ? `Match Over: ${winner.toUpperCase()} formed a triangle!` : `${turn === 'red' ? 'Red' : 'Blue (AI)'}'s turn - Pick safe edge.`}
       />
 
       {/* Header */}

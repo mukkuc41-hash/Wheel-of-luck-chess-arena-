@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { RotateCcw, Trophy, Layers, Award, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { soundFx } from '../utils/audio';
-import { GameOptionsControlPanel } from './GameOptionsControlPanel';
+import { BotAISettingsBar } from './BotAISettingsBar';
 
 interface GinRummyBoardProps {
   gameMode?: 'pvp' | 'ai' | 'local';
@@ -16,12 +16,10 @@ export const GinRummyBoard: React.FC<GinRummyBoardProps> = ({ gameMode: initialM
   const SUITS: Suit[] = ['♠', '♥', '♦', '♣'];
   const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 
-  // Options state
-  const [userSide, setUserSide] = useState<'amber' | 'purple'>('amber');
-  const [aiPlayers, setAiPlayers] = useState<Record<'amber' | 'purple', boolean>>({
-    amber: false,
-    purple: true,
-  });
+  const [opponentType, setOpponentType] = useState<'pvp' | 'ai'>(
+    initialMode === 'local' || initialMode === 'pvp' ? 'pvp' : 'ai'
+  );
+  const [aiDifficulty, setAiDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
 
   const createDeck = (): Card[] => {
     const deck: Card[] = [];
@@ -157,66 +155,57 @@ export const GinRummyBoard: React.FC<GinRummyBoardProps> = ({ gameMode: initialM
     }
   };
 
-  // AI Logic
+  // AI Logic with difficulty
   useEffect(() => {
-    if (turn === 'ai' && !winner) {
+    if (turn === 'ai' && !winner && opponentType === 'ai') {
+      const delay = aiDifficulty === 'easy' ? 950 : aiDifficulty === 'medium' ? 700 : 500;
       const timer = setTimeout(() => {
         if (turnPhase === 'draw') {
-          // Draw from stock
-          drawCard('stock', false);
+          // Draw logic
+          if (aiDifficulty === 'hard' && discardPile.length > 0) {
+            const top = discardPile[discardPile.length - 1];
+            // Check if top matches any suit/rank in hand
+            const matches = aiHand.some(c => c.rank === top.rank || (c.suit === top.suit && Math.abs(c.rank - top.rank) <= 2));
+            if (matches) drawCard('discard', false);
+            else drawCard('stock', false);
+          } else {
+            drawCard('stock', false);
+          }
         } else if (turnPhase === 'discard') {
-          // Discard highest rank
           if (aiHand.length > 0) {
-            const highest = [...aiHand].sort((a,b) => b.rank - a.rank)[0];
-            const newHand = aiHand.filter(c => c.id !== highest.id);
+            let discardTarget: Card;
+            if (aiDifficulty === 'easy') {
+              discardTarget = aiHand[Math.floor(Math.random() * aiHand.length)];
+            } else {
+              // Discard highest rank deadwood
+              discardTarget = [...aiHand].sort((a,b) => b.rank - a.rank)[0];
+            }
+            const newHand = aiHand.filter(c => c.id !== discardTarget.id);
             setAiHand(newHand);
-            setDiscardPile(prev => [...prev, highest]);
+            setDiscardPile(prev => [...prev, discardTarget]);
             setTurn('player');
             setTurnPhase('draw');
-            setStatusMsg('AI Bot completed turn. Your turn to draw.');
+            setStatusMsg(`${aiDifficulty === 'easy' ? 'Easy Bot' : aiDifficulty === 'medium' ? 'Medium Bot' : 'Pro Bot'} completed turn. Your turn to draw.`);
           }
         }
-      }, 700);
+      }, delay);
 
       return () => clearTimeout(timer);
     }
-  }, [turn, turnPhase, winner, aiHand, stock, discardPile]);
+  }, [turn, turnPhase, winner, aiHand, stock, discardPile, opponentType, aiDifficulty]);
 
   return (
     <div className="flex flex-col items-center gap-4 w-full max-w-[620px] mx-auto p-4 bg-slate-900/90 border border-amber-500/30 rounded-3xl shadow-2xl backdrop-blur-md">
-      {/* Universal Options Selector Panel */}
-      <GameOptionsControlPanel
-        playerCountOptions={[2]}
-        playerCount={2}
-        userColorId={userSide}
-        onUserColorChange={(id) => {
-          const col = id as 'amber' | 'purple';
-          setUserSide(col);
-          setAiPlayers({
-            amber: col === 'purple',
-            purple: col === 'amber',
-          });
+      {/* Uniform AI & Opponent Bar */}
+      <BotAISettingsBar
+        opponentType={opponentType}
+        onOpponentTypeChange={(t) => {
+          setOpponentType(t === 'solo' ? 'pvp' : t);
           resetGame();
         }}
-        playerSlots={[
-          {
-            id: 'amber',
-            name: 'Gold Deck (P1)',
-            colorHex: '#f59e0b',
-            isAi: aiPlayers.amber,
-            isUser: userSide === 'amber',
-            onToggleAi: () => setAiPlayers(prev => ({ ...prev, amber: !prev.amber })),
-          },
-          {
-            id: 'purple',
-            name: 'Purple Deck (P2)',
-            colorHex: '#a855f7',
-            isAi: aiPlayers.purple,
-            isUser: userSide === 'purple',
-            onToggleAi: () => setAiPlayers(prev => ({ ...prev, purple: !prev.purple })),
-          },
-        ]}
-        onResetGame={resetGame}
+        aiDifficulty={aiDifficulty}
+        onAiDifficultyChange={(d) => setAiDifficulty(d)}
+        statusMessage={statusMsg}
       />
 
       {/* Header */}

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { RotateCcw, Trophy, Bot, Sparkles, Grid } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { soundFx } from '../utils/audio';
-import { GameOptionsControlPanel } from './GameOptionsControlPanel';
+import { BotAISettingsBar } from './BotAISettingsBar';
 
 interface UltimateTicTacToeBoardProps {
   gameMode?: 'pvp' | 'ai' | 'local';
@@ -10,6 +10,10 @@ interface UltimateTicTacToeBoardProps {
 }
 
 export const UltimateTicTacToeBoard: React.FC<UltimateTicTacToeBoardProps> = ({ gameMode: initialMode = 'ai', onGameEnd }) => {
+  const [opponentType, setOpponentType] = useState<'pvp' | 'ai'>(
+    initialMode === 'local' || initialMode === 'pvp' ? 'pvp' : 'ai'
+  );
+  const [aiDifficulty, setAiDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [boards, setBoards] = useState<( 'X' | 'O' | null )[][]>(
     Array(9).fill(null).map(() => Array(9).fill(null))
   );
@@ -114,12 +118,13 @@ export const UltimateTicTacToeBoard: React.FC<UltimateTicTacToeBoardProps> = ({ 
     setTurn(playerMark === 'X' ? 'O' : 'X');
   };
 
-  // AI Logic
+  // AI Logic with difficulty
   useEffect(() => {
-    if (aiPlayers[turn] && !winner) {
+    if (turn === 'O' && opponentType === 'ai' && !winner) {
+      const delay = aiDifficulty === 'easy' ? 750 : aiDifficulty === 'medium' ? 500 : 350;
       const timer = setTimeout(() => {
         let validBoards: number[] = [];
-        if (activeBoardIdx !== -1 && !boardWinners[activeBoardIdx]) {
+        if (activeBoardIdx !== -1 && !boardWinners[activeBoardIdx] && boards[activeBoardIdx].some(c => c === null)) {
           validBoards = [activeBoardIdx];
         } else {
           validBoards = boardWinners
@@ -134,51 +139,61 @@ export const UltimateTicTacToeBoard: React.FC<UltimateTicTacToeBoardProps> = ({ 
           .map((c, idx) => (c === null ? idx : -1))
           .filter(i => i !== -1);
 
-        if (emptyCells.length > 0) {
-          const targetCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-          makeMove(targetBoard, targetCell, turn);
+        if (emptyCells.length === 0) return;
+
+        let targetCell: number = emptyCells[0];
+
+        if (aiDifficulty === 'easy') {
+          targetCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        } else {
+          // Check for immediate mini-board winning move
+          const winningCell = emptyCells.find(cell => {
+            const testCells = [...boards[targetBoard]];
+            testCells[cell] = 'O';
+            return checkMiniWin(testCells) === 'O';
+          });
+
+          // Check for mini-board block move
+          const blockCell = emptyCells.find(cell => {
+            const testCells = [...boards[targetBoard]];
+            testCells[cell] = 'X';
+            return checkMiniWin(testCells) === 'X';
+          });
+
+          if (winningCell !== undefined) {
+            targetCell = winningCell;
+          } else if (blockCell !== undefined) {
+            targetCell = blockCell;
+          } else if (aiDifficulty === 'hard') {
+            // Pick center or corners, and prefer cells that send opponent to an already completed board
+            const favorableCell = emptyCells.find(cell => boardWinners[cell] !== null) ||
+                                  emptyCells.find(cell => cell === 4) ||
+                                  emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            targetCell = favorableCell;
+          } else {
+            targetCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+          }
         }
-      }, 500);
+
+        makeMove(targetBoard, targetCell, turn);
+      }, delay);
 
       return () => clearTimeout(timer);
     }
-  }, [turn, winner, boards, boardWinners, activeBoardIdx, aiPlayers]);
+  }, [turn, winner, boards, boardWinners, activeBoardIdx, opponentType, aiDifficulty]);
 
   return (
     <div className="flex flex-col items-center gap-4 w-full max-w-[620px] mx-auto p-4 bg-slate-900/90 border border-indigo-500/30 rounded-3xl shadow-2xl backdrop-blur-md">
-      {/* Universal Options Selector Panel */}
-      <GameOptionsControlPanel
-        playerCountOptions={[2]}
-        playerCount={2}
-        userColorId={userColor}
-        onUserColorChange={(id) => {
-          const col = id as 'X' | 'O';
-          setUserColor(col);
-          setAiPlayers({
-            X: col === 'O',
-            O: col === 'X',
-          });
+      {/* Uniform AI & Opponent Bar */}
+      <BotAISettingsBar
+        opponentType={opponentType}
+        onOpponentTypeChange={(t) => {
+          setOpponentType(t === 'solo' ? 'pvp' : t);
           resetGame();
         }}
-        playerSlots={[
-          {
-            id: 'X',
-            name: 'X Mark',
-            colorHex: '#6366f1',
-            isAi: aiPlayers.X,
-            isUser: userColor === 'X',
-            onToggleAi: () => setAiPlayers(prev => ({ ...prev, X: !prev.X })),
-          },
-          {
-            id: 'O',
-            name: 'O Mark',
-            colorHex: '#a855f7',
-            isAi: aiPlayers.O,
-            isUser: userColor === 'O',
-            onToggleAi: () => setAiPlayers(prev => ({ ...prev, O: !prev.O })),
-          },
-        ]}
-        onResetGame={resetGame}
+        aiDifficulty={aiDifficulty}
+        onAiDifficultyChange={(d) => setAiDifficulty(d)}
+        statusMessage={winner ? `Match Over: ${winner === 'draw' ? 'Draw' : `${winner} Wins!`}` : `${turn === 'X' ? 'X (You)' : 'O (AI)'}'s turn - Choose valid sub-grid.`}
       />
 
       {/* Header */}

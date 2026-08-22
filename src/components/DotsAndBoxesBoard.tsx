@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { RotateCcw, Trophy, Bot, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { soundFx } from '../utils/audio';
-import { GameOptionsControlPanel } from './GameOptionsControlPanel';
+import { BotAISettingsBar } from './BotAISettingsBar';
 
 interface DotsAndBoxesBoardProps {
   gameMode?: 'pvp' | 'ai' | 'local';
@@ -12,6 +12,11 @@ interface DotsAndBoxesBoardProps {
 export const DotsAndBoxesBoard: React.FC<DotsAndBoxesBoardProps> = ({ gameMode: initialMode = 'ai', onGameEnd }) => {
   const GRID_SIZE = 5;
   const BOX_COUNT = GRID_SIZE - 1;
+
+  const [opponentType, setOpponentType] = useState<'pvp' | 'ai'>(
+    initialMode === 'local' || initialMode === 'pvp' ? 'pvp' : 'ai'
+  );
+  const [aiDifficulty, setAiDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
 
   const [hLines, setHLines] = useState<boolean[][]>(
     Array(GRID_SIZE).fill(false).map(() => Array(BOX_COUNT).fill(false))
@@ -134,9 +139,20 @@ export const DotsAndBoxesBoard: React.FC<DotsAndBoxesBoardProps> = ({ gameMode: 
     }
   };
 
-  // AI Logic
+  // Helper to count sides completed on a box
+  const countBoxSides = (r: number, c: number, testHLines = hLines, testVLines = vLines) => {
+    let count = 0;
+    if (testHLines[r][c]) count++;
+    if (testHLines[r + 1][c]) count++;
+    if (testVLines[r][c]) count++;
+    if (testVLines[r][c + 1]) count++;
+    return count;
+  };
+
+  // AI Logic with difficulty
   useEffect(() => {
-    if (aiPlayers[turn] && !winner) {
+    if (turn === 'P2' && opponentType === 'ai' && !winner) {
+      const delay = aiDifficulty === 'easy' ? 750 : aiDifficulty === 'medium' ? 500 : 350;
       const timer = setTimeout(() => {
         const availableLines: { type: 'h' | 'v'; r: number; c: number }[] = [];
 
@@ -153,35 +169,73 @@ export const DotsAndBoxesBoard: React.FC<DotsAndBoxesBoardProps> = ({ gameMode: 
 
         if (availableLines.length === 0) return;
 
-        const chosen = availableLines[Math.floor(Math.random() * availableLines.length)];
+        let chosen: { type: 'h' | 'v'; r: number; c: number };
+
+        if (aiDifficulty === 'easy') {
+          chosen = availableLines[Math.floor(Math.random() * availableLines.length)];
+        } else {
+          // Find any move that completes a box (has 3 sides currently)
+          const winningMoves = availableLines.filter(line => {
+            const tempH = hLines.map(row => [...row]);
+            const tempV = vLines.map(row => [...row]);
+            if (line.type === 'h') tempH[line.r][line.c] = true;
+            else tempV[line.r][line.c] = true;
+
+            for (let r = 0; r < BOX_COUNT; r++) {
+              for (let c = 0; c < BOX_COUNT; c++) {
+                if (!boxes[r][c] && countBoxSides(r, c, tempH, tempV) === 4) {
+                  return true;
+                }
+              }
+            }
+            return false;
+          });
+
+          if (winningMoves.length > 0) {
+            chosen = winningMoves[0];
+          } else if (aiDifficulty === 'hard') {
+            // Avoid creating a 3rd side for opponent
+            const safeMoves = availableLines.filter(line => {
+              const tempH = hLines.map(row => [...row]);
+              const tempV = vLines.map(row => [...row]);
+              if (line.type === 'h') tempH[line.r][line.c] = true;
+              else tempV[line.r][line.c] = true;
+
+              for (let r = 0; r < BOX_COUNT; r++) {
+                for (let c = 0; c < BOX_COUNT; c++) {
+                  if (!boxes[r][c] && countBoxSides(r, c, tempH, tempV) === 3) {
+                    return false;
+                  }
+                }
+              }
+              return true;
+            });
+
+            chosen = safeMoves.length > 0 ? safeMoves[Math.floor(Math.random() * safeMoves.length)] : availableLines[0];
+          } else {
+            chosen = availableLines[Math.floor(Math.random() * availableLines.length)];
+          }
+        }
+
         makeMove(chosen.type, chosen.r, chosen.c, turn);
-      }, 500);
+      }, delay);
 
       return () => clearTimeout(timer);
     }
-  }, [turn, winner, hLines, vLines, aiPlayers]);
+  }, [turn, winner, hLines, vLines, boxes, opponentType, aiDifficulty]);
 
   return (
     <div className="flex flex-col items-center gap-4 w-full max-w-[560px] mx-auto p-4 bg-slate-900/90 border border-emerald-500/30 rounded-3xl shadow-2xl backdrop-blur-md">
-      {/* Universal Options Selector Panel */}
-      <GameOptionsControlPanel
-        playerCountOptions={[2, 3, 4]}
-        playerCount={playerCount}
-        onPlayerCountChange={(num) => setPlayerCount(num)}
-        userColorId={userColor}
-        onUserColorChange={(id) => {
-          setUserColor(id);
+      {/* Uniform AI & Opponent Bar */}
+      <BotAISettingsBar
+        opponentType={opponentType}
+        onOpponentTypeChange={(t) => {
+          setOpponentType(t === 'solo' ? 'pvp' : t);
           resetGame();
         }}
-        playerSlots={PLAYER_DECK.slice(0, playerCount).map(item => ({
-          id: item.id,
-          name: item.name,
-          colorHex: item.hex,
-          isAi: !!aiPlayers[item.id],
-          isUser: userColor === item.id,
-          onToggleAi: () => setAiPlayers(prev => ({ ...prev, [item.id]: !prev[item.id] })),
-        }))}
-        onResetGame={resetGame}
+        aiDifficulty={aiDifficulty}
+        onAiDifficultyChange={(d) => setAiDifficulty(d)}
+        statusMessage={winner ? `Game Over: ${winner === 'draw' ? 'Draw' : `${winner} Wins!`}` : `${turn === 'P1' ? 'P1' : 'P2 (AI)'}'s turn - Connect dots to claim boxes.`}
       />
 
       {/* Header */}

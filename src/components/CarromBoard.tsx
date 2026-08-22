@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { soundFx } from '../utils/audio';
+import { BotAISettingsBar } from './BotAISettingsBar';
 
 export type CarromGameMode = 'classic' | 'points' | 'freestyle';
 export type CarromOpponent = 'ai' | 'local' | 'solo';
@@ -70,6 +71,7 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
   const [opponentType, setOpponentType] = useState<CarromOpponent>(
     externalGameMode === 'ai' ? 'ai' : 'local'
   );
+  const [aiDifficulty, setAiDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [pieceLayout, setPieceLayout] = useState<CarromPieceLayout>('tournament');
   const [soundActive, setSoundActive] = useState<boolean>(true);
   const [showGuideModal, setShowGuideModal] = useState<boolean>(false);
@@ -831,10 +833,11 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
 
       if (!target) return;
 
-      // 2. Baseline Alignment with human-like randomized offset
+      // 2. Baseline Alignment with human-like randomized offset based on difficulty
+      const offsetRange = aiDifficulty === 'easy' ? 36 : aiDifficulty === 'medium' ? 16 : 4;
       const idealX = Math.max(
         BASELINE_MIN_X,
-        Math.min(BASELINE_MAX_X, target.x + (Math.random() * 20 - 10))
+        Math.min(BASELINE_MAX_X, target.x + (Math.random() * offsetRange - offsetRange / 2))
       );
       strikerRef.current.x = idealX;
       strikerRef.current.y = BASELINE_Y_P2;
@@ -844,11 +847,12 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
       const dy = target.y - strikerRef.current.y;
       let angle = Math.atan2(dy, dx);
 
-      // Subtle humanized angle variance (±1.5 degrees)
-      angle += (Math.random() - 0.5) * 0.05;
+      // Angle variance based on difficulty
+      const angleVariance = aiDifficulty === 'easy' ? 0.14 : aiDifficulty === 'medium' ? 0.04 : 0.008;
+      angle += (Math.random() - 0.5) * angleVariance;
 
       // 4. Power Scaling (balanced velocity between 11 and 14)
-      const speed = 11 + Math.random() * 3; // Balanced 11 - 14 velocity multiplier
+      const speed = aiDifficulty === 'easy' ? (9 + Math.random() * 3) : (11 + Math.random() * 3);
       const powerEquivalent = (speed / 16) * 100;
 
       strikerRef.current.aimAngle = angle;
@@ -862,9 +866,9 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
 
       setIsGameRunning(true);
       playCarromSound('strike');
-      setMatchStatusText('AI shot fired! Your turn.');
+      setMatchStatusText(`${aiDifficulty === 'easy' ? 'Easy Bot' : aiDifficulty === 'medium' ? 'Medium Bot' : 'Pro Bot'} shot fired! Your turn.`);
     }, 800);
-  }, [currentPlayer, matchWinner, opponentType, queenCoverPending]);
+  }, [aiDifficulty, currentPlayer, matchWinner, opponentType, queenCoverPending]);
 
   useEffect(() => {
     if (currentPlayer === 2 && opponentType === 'ai' && !matchWinner && strikerRef.current.active) {
@@ -1734,6 +1738,20 @@ export const CarromBoard: React.FC<CarromBoardProps> = ({
 
         {/* Controls Panel */}
         <div className="px-4 sm:px-5 pb-4 flex flex-col gap-3">
+          {/* Uniform AI & Opponent Bar */}
+          <BotAISettingsBar
+            opponentType={opponentType === 'local' ? 'pvp' : opponentType}
+            onOpponentTypeChange={(t) => {
+              setOpponentType(t === 'pvp' ? 'local' : t);
+              resetMatch();
+            }}
+            aiDifficulty={aiDifficulty}
+            onAiDifficultyChange={(d) => setAiDifficulty(d)}
+            statusMessage={matchStatusText}
+            hasSoloMode={true}
+            soloLabel="Solo"
+          />
+
           {/* Slider Group */}
           <div className="bg-[#161c2d] border border-[#242f4c] rounded-[10px] p-3 sm:p-3.5 flex flex-col gap-2">
             <div className="flex justify-between text-[11px] text-[#8c92a4]">
